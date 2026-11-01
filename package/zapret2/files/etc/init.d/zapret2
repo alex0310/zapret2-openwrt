@@ -1,0 +1,85 @@
+#!/bin/sh /etc/rc.common
+# zapret2 init script for OpenWrt
+
+START=99
+STOP=10
+
+EXTRA_COMMANDS="status"
+EXTRA_HELP="	status	Show service status"
+
+ZAPRET_BASE="/opt/zapret2"
+UCI2CONFIG="$ZAPRET_BASE/init.d/openwrt/uci2config"
+ZAPRET_SCRIPT="$ZAPRET_BASE/init.d/openwrt/zapret2"
+ZAPRET2_BIN="/usr/bin/zapret2"
+
+generate_config() {
+	[ -x "$UCI2CONFIG" ] && "$UCI2CONFIG"
+}
+
+apply_patches() {
+	[ -x "$ZAPRET2_BIN" ] && "$ZAPRET2_BIN" patch-apply >/dev/null 2>&1
+}
+
+revert_patches() {
+	[ -x "$ZAPRET2_BIN" ] && "$ZAPRET2_BIN" patch-revert >/dev/null 2>&1
+}
+
+_do_start() {
+	logger -t zapret2 "Starting zapret2..."
+	apply_patches
+	generate_config
+	"$ZAPRET_SCRIPT" start >/dev/null 2>&1
+
+	# Fix permissions on log files for LuCI access
+	[ -d /tmp/zapret2 ] && chmod 755 /tmp/zapret2
+	for f in /tmp/zapret2/*.log; do
+		[ -f "$f" ] && chmod 644 "$f"
+	done
+}
+
+start() {
+	[ -x "$ZAPRET_SCRIPT" ] || return 1
+
+	# If called by package manager — start in background to not block installation
+	if pgrep -x opkg >/dev/null 2>&1 || pgrep -x apk >/dev/null 2>&1; then
+		logger -t zapret2 "Package manager detected, starting in background"
+		_do_start &
+	else
+		_do_start
+	fi
+}
+
+stop() {
+	logger -t zapret2 "Stopping zapret2..."
+	[ -x "$ZAPRET_SCRIPT" ] && "$ZAPRET_SCRIPT" stop >/dev/null 2>&1
+	revert_patches
+	# Clean up log files
+	for f in /tmp/zapret2/*.log; do
+		[ -f "$f" ] && rm -f "$f"
+	done
+	echo "inactive"
+}
+
+reload() {
+	stop
+	sleep 1
+	start
+}
+
+restart() {
+	stop
+	sleep 1
+	start
+}
+
+status() {
+	if pgrep nfqws2 >/dev/null 2>&1; then
+		echo "running"
+	else
+		echo "inactive"
+	fi
+}
+
+boot() {
+	( sleep 5; start ) &
+}

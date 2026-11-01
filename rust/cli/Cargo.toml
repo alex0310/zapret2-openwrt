@@ -1,0 +1,8 @@
+[package]
+name = "zapret2"
+version = "1.0.0"
+edition = "2021"
+
+[[bin]]
+name = "zapret2"
+path = "src/main.rs"

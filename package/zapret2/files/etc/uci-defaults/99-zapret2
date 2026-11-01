@@ -1,0 +1,16 @@
+#!/bin/sh
+
+/etc/init.d/zapret2 enable >/dev/null 2>&1
+
+# Register zapret2 in ucitrack (legacy, OpenWrt 24.10 and older)
+# On OpenWrt 25.12+ procd uses service_triggers() from inner procd script
+if [ -f /etc/config/ucitrack ]; then
+	uci -q batch <<-EOF >/dev/null
+		delete ucitrack.@zapret2[-1]
+		add ucitrack zapret2
+		set ucitrack.@zapret2[-1].init=zapret2
+		commit ucitrack
+	EOF
+fi
+
+exit 0

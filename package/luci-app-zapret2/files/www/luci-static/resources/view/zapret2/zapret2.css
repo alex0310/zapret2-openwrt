@@ -1,0 +1,107 @@
+/**
+ * zapret2 LuCI styles
+ * Modal window sizes
+ */
+
+/* ui.showModal windows */
+.modal {
+    width: 90%;
+    max-width: 600px;
+}
+
+.modal > div:first-child {
+    width: 100%;
+}
+
+.modal textarea.cbi-input-textarea {
+    width: 100%;
+    font-family: monospace;
+}
+
+/* CBI Modal windows */
+.cbi-modal {
+    width: 90%;
+    max-width: 600px;
+}
+
+.cbi-modal .cbi-modal-dialog,
+.cbi-modal > div:first-child {
+    width: 100%;
+}
+
+.cbi-modal textarea.cbi-input-textarea {
+    width: 100%;
+    font-family: monospace;
+}
+
+/* Settings section: uniform input width */
+.cbi-section > .table input.cbi-input-text {
+    width: 300px;
+}
+
+/* Blockcheck option groups */
+fieldset.bc2-group {
+    border: none;
+    padding: 6px 12px 10px;
+    margin-bottom: 8px;
+}
+
+.bc2-group legend {
+    font-weight: bold;
+    padding: 0 6px;
+    font-size: 90%;
+}
+
+.bc2-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 15px;
+    margin-bottom: 4px;
+}
+
+.bc2-checkbox {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+.bc2-checkbox input[type="checkbox"] {
+    margin-right: 6px;
+    position: relative;
+    top: -1px;
+}
+
+#bc2_curl_path,
+.bc2-field:has(#bc2_curl_path) {
+    flex: 1;
+    width: 100%;
+}
+
+#bc2_scanlevel {
+    margin-left: 11px;
+}
+
+#bc2_repeats {
+    margin-left: 2px;
+}
+
+/* Responsive: hide strategy table columns on narrow screens (table mode only) */
+@media screen and (min-width: 601px) and (max-width: 900px) {
+    .cbi-section-table td[data-name="filter_l3"],
+    .cbi-section-table th[data-name="filter_l3"],
+    .cbi-section-table td[data-name="protocol"],
+    .cbi-section-table th[data-name="protocol"] {
+        display: none;
+    }
+}
+
+@media screen and (min-width: 601px) and (max-width: 700px) {
+    .cbi-section-table td[data-name="filter_l7"],
+    .cbi-section-table th[data-name="filter_l7"],
+    .cbi-section-table td[data-name="_lists"],
+    .cbi-section-table th[data-name="_lists"] {
+        display: none;
+    }
+}

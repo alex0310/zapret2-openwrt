@@ -1,0 +1,63 @@
+zapret2-openwrt 1.0.0-r1
+========================
+
+Packages:
+  zapret2              mipsel_24kc
+  luci-app-zapret2     all / noarch
+
+Supported OpenWrt SDKs:
+  24.10.5   ramips/mt76x8   gcc 13.3.0   musl
+  25.12.6   ramips/mt76x8   gcc 14.3.0   musl
+
+Rust toolchain
+--------------
+The CLI and finder are built with Rust nightly, rust-src and build-std.
+The repository also contains prebuilt mipsel binaries in:
+  package/zapret2/files/usr/bin/zapret2
+  package/zapret2/files/opt/zapret2/zapret2-finder
+  package/zapret2/files-25.12/usr/bin/zapret2
+  package/zapret2/files-25.12/opt/zapret2/zapret2-finder
+
+Build the Rust binaries for 24.10.5:
+  SDK=/path/to/openwrt-sdk-24.10.5-ramips-mt76x8_gcc-13.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-mipsel_24kc_gcc-13.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_mipsel_unknown_linux_musl="$TC/bin/mipsel-openwrt-linux-musl-gcc"
+  export CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/mipsel-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target mipsel-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-mipsel
+
+Build the Rust binaries for 25.12.6:
+  SDK=/path/to/openwrt-sdk-25.12.6-ramips-mt76x8_gcc-14.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-mipsel_24kc_gcc-14.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_mipsel_unknown_linux_musl="$TC/bin/mipsel-openwrt-linux-musl-gcc"
+  export CARGO_TARGET_MIPSEL_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/mipsel-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target mipsel-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-mipsel-25.12
+
+Copy the resulting binaries to the matching files/ or files-25.12/ tree.
+
+OpenWrt packages
+----------------
+Put package/zapret2 and package/luci-app-zapret2 into the SDK package/
+directory, then build:
+
+  24.10.5:
+    make package/zapret2/compile package/luci-app-zapret2/compile
+
+  25.12.6, native APK:
+    make package/zapret2/compile package/luci-app-zapret2/compile
+
+  25.12.6, optional IPK:
+    make CONFIG_USE_APK= package/zapret2/compile package/luci-app-zapret2/compile
+
+The package Makefile downloads upstream zapret2 v1.0.2 source and builds
+nfqws2 and mdig for the target. Package versioning is independent:
+all packages use project version 1.0.0-r1.

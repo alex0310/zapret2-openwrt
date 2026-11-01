@@ -1,0 +1,25 @@
+# Build outputs
+/openwrt-sdk-*/
+/out/
+/out-25.12.6/
+/release-*/
+/zapret2-src/
+/src-tarballs/
+/z/
+/ipk/
+/ctl-l/
+/ctl-z/
+/l/
+/bin/
+*.log
+*.strings
+*.tar.gz
+*.tar.zst
+*.zst
+*.zip
+
+# Do not publish Markdown files
+*.md
+
+# Rust build directories
+rust/target-*/
