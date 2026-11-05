@@ -2,23 +2,34 @@ zapret2-openwrt 1.0.0-r1
 ========================
 
 Packages:
-  zapret2              mipsel_24kc
+  zapret2              mipsel_24kc, aarch64_cortex-a53
   luci-app-zapret2     all / noarch
 
 Supported OpenWrt SDKs:
-  24.10.5   ramips/mt76x8   gcc 13.3.0   musl
-  25.12.6   ramips/mt76x8   gcc 14.3.0   musl
+  24.10.5   ramips/mt76x8       gcc 13.3.0   musl   mipsel_24kc
+  24.10.5   mediatek/filogic    gcc 13.3.0   musl   aarch64_cortex-a53
+  25.12.6   ramips/mt76x8       gcc 14.3.0   musl   mipsel_24kc
+  25.12.6   mediatek/filogic    gcc 14.3.0   musl   aarch64_cortex-a53
+
+The aarch64_cortex-a53 packages are built with the mediatek/filogic SDK.
+They can be installed on other aarch64_cortex-a53 OpenWrt targets as long
+as the target feed provides the required kernel modules:
+  kmod-nft-queue, kmod-nfnetlink-queue, kmod-nf-conntrack
 
 Rust toolchain
 --------------
 The CLI and finder are built with Rust nightly, rust-src and build-std.
-The repository also contains prebuilt mipsel binaries in:
+The repository contains prebuilt binaries in:
   package/zapret2/files/usr/bin/zapret2
   package/zapret2/files/opt/zapret2/zapret2-finder
   package/zapret2/files-25.12/usr/bin/zapret2
   package/zapret2/files-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-aarch64/usr/bin/zapret2
+  package/zapret2/files-aarch64/opt/zapret2/zapret2-finder
+  package/zapret2/files-aarch64-25.12/usr/bin/zapret2
+  package/zapret2/files-aarch64-25.12/opt/zapret2/zapret2-finder
 
-Build the Rust binaries for 24.10.5:
+Build the Rust binaries for mipsel_24kc / 24.10.5:
   SDK=/path/to/openwrt-sdk-24.10.5-ramips-mt76x8_gcc-13.3.0_musl.Linux-x86_64
   TC=$SDK/staging_dir/toolchain-mipsel_24kc_gcc-13.3.0_musl
   export PATH="$TC/bin:$PATH"
@@ -30,7 +41,7 @@ Build the Rust binaries for 24.10.5:
   cargo +nightly build --release --target mipsel-unknown-linux-musl \
     -Z build-std=std,panic_abort --target-dir target-mipsel
 
-Build the Rust binaries for 25.12.6:
+Build the Rust binaries for mipsel_24kc / 25.12.6:
   SDK=/path/to/openwrt-sdk-25.12.6-ramips-mt76x8_gcc-14.3.0_musl.Linux-x86_64
   TC=$SDK/staging_dir/toolchain-mipsel_24kc_gcc-14.3.0_musl
   export PATH="$TC/bin:$PATH"
@@ -42,7 +53,35 @@ Build the Rust binaries for 25.12.6:
   cargo +nightly build --release --target mipsel-unknown-linux-musl \
     -Z build-std=std,panic_abort --target-dir target-mipsel-25.12
 
-Copy the resulting binaries to the matching files/ or files-25.12/ tree.
+Build the Rust binaries for aarch64_cortex-a53 / 24.10.5:
+  SDK=/path/to/openwrt-sdk-24.10.5-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-aarch64_cortex-a53_gcc-13.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_aarch64_unknown_linux_musl="$TC/bin/aarch64-openwrt-linux-musl-gcc"
+  export AR_aarch64_unknown_linux_musl="$TC/bin/aarch64-openwrt-linux-musl-ar"
+  export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/aarch64-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target aarch64-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-aarch64
+
+Build the Rust binaries for aarch64_cortex-a53 / 25.12.6:
+  SDK=/path/to/openwrt-sdk-25.12.6-mediatek-filogic_gcc-14.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-aarch64_cortex-a53_gcc-14.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_aarch64_unknown_linux_musl="$TC/bin/aarch64-openwrt-linux-musl-gcc"
+  export AR_aarch64_unknown_linux_musl="$TC/bin/aarch64-openwrt-linux-musl-ar"
+  export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/aarch64-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target aarch64-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-aarch64-25.12
+
+Copy the resulting binaries to the matching files* tree.
+The package Makefile selects the aarch64 trees automatically from ARCH
+and CONFIG_TARGET_ARCH_PACKAGES.
 
 OpenWrt packages
 ----------------
@@ -61,3 +100,12 @@ directory, then build:
 The package Makefile downloads upstream zapret2 v1.0.2 source and builds
 nfqws2 and mdig for the target. Package versioning is independent:
 all packages use project version 1.0.0-r1.
+
+Release archives
+----------------
+  zapret2-openwrt-1.0.0-r1-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a53-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a53-25.12.6-apk.zip
+
+The 25.12.6 IPK build is optional and is not part of the release archives.

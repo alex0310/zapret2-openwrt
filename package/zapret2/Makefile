@@ -17,10 +17,18 @@ PKG_LICENSE_FILES:=docs/LICENSE.txt
 
 include $(INCLUDE_DIR)/package.mk
 
-ifneq ($(findstring 25.12,$(CONFIG_VERSION_REPO)),)
-  ZAPRET2_RUST_DIR:=./files-25.12
+ifneq ($(filter aarch64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+  ifneq ($(findstring 25.12,$(CONFIG_VERSION_REPO)),)
+    ZAPRET2_RUST_DIR:=./files-aarch64-25.12
+  else
+    ZAPRET2_RUST_DIR:=./files-aarch64
+  endif
 else
-  ZAPRET2_RUST_DIR:=./files
+  ifneq ($(findstring 25.12,$(CONFIG_VERSION_REPO)),)
+    ZAPRET2_RUST_DIR:=./files-25.12
+  else
+    ZAPRET2_RUST_DIR:=./files
+  endif
 endif
 
 define Package/zapret2
