@@ -2,18 +2,21 @@ zapret2-openwrt 1.0.0-r1
 ========================
 
 Packages:
-  zapret2              mipsel_24kc, aarch64_cortex-a53
+  zapret2              mipsel_24kc, mips_24kc, aarch64_cortex-a53
   luci-app-zapret2     all / noarch
 
 Supported OpenWrt SDKs:
   24.10.5   ramips/mt76x8       gcc 13.3.0   musl   mipsel_24kc
+  24.10.5   ath79/generic       gcc 13.3.0   musl   mips_24kc
   24.10.5   mediatek/filogic    gcc 13.3.0   musl   aarch64_cortex-a53
   25.12.6   ramips/mt76x8       gcc 14.3.0   musl   mipsel_24kc
+  25.12.6   ath79/generic       gcc 14.3.0   musl   mips_24kc
   25.12.6   mediatek/filogic    gcc 14.3.0   musl   aarch64_cortex-a53
 
+The mips_24kc packages are built with the ath79/generic SDK.
 The aarch64_cortex-a53 packages are built with the mediatek/filogic SDK.
-They can be installed on other aarch64_cortex-a53 OpenWrt targets as long
-as the target feed provides the required kernel modules:
+They can be installed on other targets with the same package architecture
+as long as the target feed provides the required kernel modules:
   kmod-nft-queue, kmod-nfnetlink-queue, kmod-nf-conntrack
 
 Rust toolchain
@@ -24,6 +27,10 @@ The repository contains prebuilt binaries in:
   package/zapret2/files/opt/zapret2/zapret2-finder
   package/zapret2/files-25.12/usr/bin/zapret2
   package/zapret2/files-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-mips/usr/bin/zapret2
+  package/zapret2/files-mips/opt/zapret2/zapret2-finder
+  package/zapret2/files-mips-25.12/usr/bin/zapret2
+  package/zapret2/files-mips-25.12/opt/zapret2/zapret2-finder
   package/zapret2/files-aarch64/usr/bin/zapret2
   package/zapret2/files-aarch64/opt/zapret2/zapret2-finder
   package/zapret2/files-aarch64-25.12/usr/bin/zapret2
@@ -53,6 +60,32 @@ Build the Rust binaries for mipsel_24kc / 25.12.6:
   cargo +nightly build --release --target mipsel-unknown-linux-musl \
     -Z build-std=std,panic_abort --target-dir target-mipsel-25.12
 
+Build the Rust binaries for mips_24kc / 24.10.5:
+  SDK=/path/to/openwrt-sdk-24.10.5-ath79-generic_gcc-13.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-mips_24kc_gcc-13.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_mips_unknown_linux_musl="$TC/bin/mips-openwrt-linux-musl-gcc"
+  export AR_mips_unknown_linux_musl="$TC/bin/mips-openwrt-linux-musl-ar"
+  export CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/mips-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target mips-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-mips
+
+Build the Rust binaries for mips_24kc / 25.12.6:
+  SDK=/path/to/openwrt-sdk-25.12.6-ath79-generic_gcc-14.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-mips_24kc_gcc-14.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_mips_unknown_linux_musl="$TC/bin/mips-openwrt-linux-musl-gcc"
+  export AR_mips_unknown_linux_musl="$TC/bin/mips-openwrt-linux-musl-ar"
+  export CARGO_TARGET_MIPS_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/mips-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target mips-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-mips-25.12
+
 Build the Rust binaries for aarch64_cortex-a53 / 24.10.5:
   SDK=/path/to/openwrt-sdk-24.10.5-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64
   TC=$SDK/staging_dir/toolchain-aarch64_cortex-a53_gcc-13.3.0_musl
@@ -80,8 +113,8 @@ Build the Rust binaries for aarch64_cortex-a53 / 25.12.6:
     -Z build-std=std,panic_abort --target-dir target-aarch64-25.12
 
 Copy the resulting binaries to the matching files* tree.
-The package Makefile selects the aarch64 trees automatically from ARCH
-and CONFIG_TARGET_ARCH_PACKAGES.
+The package Makefile selects the mips and aarch64 trees automatically from
+ARCH and CONFIG_TARGET_ARCH_PACKAGES.
 
 OpenWrt packages
 ----------------
@@ -101,10 +134,16 @@ The package Makefile downloads upstream zapret2 v1.0.2 source and builds
 nfqws2 and mdig for the target. Package versioning is independent:
 all packages use project version 1.0.0-r1.
 
+The LuaJIT dependency requires host GCC multilib when building for 32-bit
+targets. If the default host GCC lacks 32-bit libgcc, select a multilib
+compiler explicitly, for example: make HOSTCC=gcc-15 ...
+
 Release archives
 ----------------
   zapret2-openwrt-1.0.0-r1-24.10.5.zip
   zapret2-openwrt-1.0.0-r1-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-mips_24kc-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-mips_24kc-25.12.6-apk.zip
   zapret2-openwrt-1.0.0-r1-aarch64_cortex-a53-24.10.5.zip
   zapret2-openwrt-1.0.0-r1-aarch64_cortex-a53-25.12.6-apk.zip
 
