@@ -270,7 +270,7 @@ resolve_owrt() {
 		*) die "Нет пакетов для OpenWrt $OWRT. Поддерживаются только 24.10.5 и 25.12.6." ;;
 	esac
 
-	warn "OpenWrt $OWRT точно не поддерживается; использую пакеты для $OWRT_USE."
+	warn "Версия OpenWrt $OWRT устарела; использую пакеты для $OWRT_USE."
 	warn "Рекомендуется обновить OpenWrt до $OWRT_USE."
 
 	[ "$ALLOW_UNSUPPORTED" = 1 ] && return 0
