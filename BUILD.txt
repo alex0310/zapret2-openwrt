@@ -138,6 +138,25 @@ The LuaJIT dependency requires host GCC multilib when building for 32-bit
 targets. If the default host GCC lacks 32-bit libgcc, select a multilib
 compiler explicitly, for example: make HOSTCC=gcc-15 ...
 
+Installer
+---------
+install-zapret2.sh installs the published packages on a running OpenWrt
+system. It detects the package manager and architecture, selects the
+matching release archive, installs zapret2 and, when LuCI is present,
+luci-app-zapret2. It can also offer to install the Russian LuCI language
+packages.
+
+Usage examples:
+  wget -qO- https://raw.githubusercontent.com/alex0310/zapret2-openwrt/main/install-zapret2.sh | sh
+  wget -qO- .../install-zapret2.sh | sh -s -- --start
+  wget -qO- .../install-zapret2.sh | sh -s -- --no-luci --yes
+  wget -qO- .../install-zapret2.sh | sh -s -- --lang-ru
+  sh install-zapret2.sh 1.0.0-r1 --dry-run
+
+The installer supports exactly OpenWrt 24.10.5 (IPK) and 25.12.6 (APK),
+and the mipsel_24kc, mips_24kc and aarch64_cortex-a53 package
+architectures. It does not install sysupgrade images.
+
 Release archives
 ----------------
   zapret2-openwrt-1.0.0-r1-24.10.5.zip
