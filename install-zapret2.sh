@@ -97,8 +97,8 @@ zapret2 — установщик для OpenWrt
                          --lang-ru.
   --force                Переустановить выбранные пакеты.
   --no-update            Не выполнять opkg update / apk update.
-  --allow-unsupported    Разрешить близкую версию OpenWrt (24.10.x / 25.12.x)
-                         с предупреждением.
+  --allow-unsupported    Не спрашивать подтверждение для близкой версии
+                         OpenWrt 24.10.x / 25.12.x (с предупреждением).
   --dry-run              Показать план установки, ничего не меняя.
   -h, --help             Показать эту справку.
 
@@ -260,20 +260,38 @@ resolve_owrt() {
 	OWRT_USE="$OWRT"
 	case "$OWRT" in
 		24.10.5|25.12.6)
-			;;
-		*)
-			if [ "$ALLOW_UNSUPPORTED" = 1 ]; then
-				case "$OWRT" in
-					24.10.*) OWRT_USE=24.10.5 ;;
-					25.12.*) OWRT_USE=25.12.6 ;;
-					*) die "Нет пакетов для OpenWrt $OWRT" ;;
-				esac
-				warn "OpenWrt $OWRT точно не поддерживается; использую пакеты для $OWRT_USE"
-			else
-				die "Поддерживаются только OpenWrt 24.10.5 и 25.12.6 (обнаружено: $OWRT)"
-			fi
+			return 0
 			;;
 	esac
+
+	case "$OWRT" in
+		24.10|24.10.*) OWRT_USE=24.10.5 ;;
+		25.12|25.12.*) OWRT_USE=25.12.6 ;;
+		*) die "Нет пакетов для OpenWrt $OWRT. Поддерживаются только 24.10.5 и 25.12.6." ;;
+	esac
+
+	warn "OpenWrt $OWRT точно не поддерживается; использую пакеты для $OWRT_USE."
+	warn "Рекомендуется обновить OpenWrt до $OWRT_USE."
+
+	[ "$ALLOW_UNSUPPORTED" = 1 ] && return 0
+
+	if [ "$DRY_RUN" = 1 ]; then
+		warn "Режим --dry-run: продолжаю без подтверждения."
+		return 0
+	fi
+
+	if [ "$ASSUME_YES" = 1 ]; then
+		die "Для продолжения без вопросов укажите --allow-unsupported"
+	fi
+
+	if ! ( : < /dev/tty ) 2>/dev/null || ! ( : > /dev/tty ) 2>/dev/null; then
+		die "Нет терминала для подтверждения. Укажите --allow-unsupported."
+	fi
+
+	printf 'Нажмите Enter, чтобы продолжить, или Ctrl+C для отмены: ' >/dev/tty
+	IFS= read -r answer </dev/tty || die "Установка отменена"
+	printf '\n' >/dev/tty 2>/dev/null || true
+	return 0
 }
 
 asset_name() {
@@ -912,7 +930,11 @@ print_summary() {
 	log ""
 	log "Установка завершена."
 	log "  Версия: $VERSION"
-	log "  OpenWrt: $OWRT"
+	if [ "$OWRT" = "$OWRT_USE" ]; then
+		log "  OpenWrt: $OWRT"
+	else
+		log "  OpenWrt: $OWRT (пакеты: $OWRT_USE)"
+	fi
 	log "  Архитектура: $ARCH"
 	log "  Формат: $PKG_FMT"
 	if [ "$INSTALL_LUCI" = 1 ]; then

@@ -153,9 +153,12 @@ Usage examples:
   wget -qO- .../install-zapret2.sh | sh -s -- --lang-ru
   sh install-zapret2.sh 1.0.0-r1 --dry-run
 
-The installer supports exactly OpenWrt 24.10.5 (IPK) and 25.12.6 (APK),
-and the mipsel_24kc, mips_24kc and aarch64_cortex-a53 package
-architectures. It does not install sysupgrade images.
+The installer targets OpenWrt 24.10.5 (IPK) and 25.12.6 (APK), and the
+mipsel_24kc, mips_24kc and aarch64_cortex-a53 package architectures. On
+other 24.10.x or 25.12.x releases it prints a warning, recommends the
+tested release, and waits for Enter before continuing. Use
+--allow-unsupported for non-interactive runs. It does not install
+sysupgrade images.
 
 Release archives
 ----------------
