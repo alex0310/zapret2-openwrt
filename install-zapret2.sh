@@ -112,9 +112,13 @@ zapret2 — установщик для OpenWrt
   24.10.5  mipsel_24kc          IPK
   24.10.5  mips_24kc            IPK
   24.10.5  aarch64_cortex-a53   IPK
+  24.10.5  aarch64_cortex-a72   IPK
+  24.10.5  aarch64_cortex-a76   IPK
   25.12.6  mipsel_24kc          APK
   25.12.6  mips_24kc            APK
   25.12.6  aarch64_cortex-a53   APK
+  25.12.6  aarch64_cortex-a72   APK
+  25.12.6  aarch64_cortex-a76   APK
 EOF
 }
 
@@ -124,9 +128,13 @@ print_supported() {
   24.10.5  mipsel_24kc          IPK
   24.10.5  mips_24kc            IPK
   24.10.5  aarch64_cortex-a53   IPK
+  24.10.5  aarch64_cortex-a72   IPK
+  24.10.5  aarch64_cortex-a76   IPK
   25.12.6  mipsel_24kc          APK
   25.12.6  mips_24kc            APK
   25.12.6  aarch64_cortex-a53   APK
+  25.12.6  aarch64_cortex-a72   APK
+  25.12.6  aarch64_cortex-a76   APK
 EOF
 }
 
@@ -305,6 +313,12 @@ asset_name() {
 		24.10.5:aarch64_cortex-a53:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a53-24.10.5.zip"
 			;;
+		24.10.5:aarch64_cortex-a72:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a72-24.10.5.zip"
+			;;
+		24.10.5:aarch64_cortex-a76:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a76-24.10.5.zip"
+			;;
 		25.12.6:mipsel_24kc:apk)
 			printf '%s\n' "zapret2-openwrt-$1-25.12.6-apk.zip"
 			;;
@@ -313,6 +327,12 @@ asset_name() {
 			;;
 		25.12.6:aarch64_cortex-a53:apk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a53-25.12.6-apk.zip"
+			;;
+		25.12.6:aarch64_cortex-a72:apk)
+			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a72-25.12.6-apk.zip"
+			;;
+		25.12.6:aarch64_cortex-a76:apk)
+			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a76-25.12.6-apk.zip"
 			;;
 		*)
 			return 1
