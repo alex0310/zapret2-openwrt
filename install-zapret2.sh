@@ -24,6 +24,8 @@
 
 REPO="alex0310/zapret2-openwrt"
 PKG_LOG="${ZAPRET2_PKG_LOG:-/tmp/zapret2-pkg.log}"
+APK_KEY_NAME="zapret2-apk-key.pem"
+APK_KEY_PATH="/etc/apk/keys/$APK_KEY_NAME"
 
 VERSION="${ZAPRET2_VERSION:-}"
 WITH_LUCI=""
@@ -51,6 +53,7 @@ ZAPRET_PKG=""
 LUCI_PKG=""
 INSTALL_LUCI=0
 PKG_INDEX_READY=0
+APK_KEY_READY=0
 DL=""
 UNZIP=""
 
@@ -110,12 +113,16 @@ zapret2 — установщик для OpenWrt
 
 Поддерживаемые комбинации:
   24.10.5  mipsel_24kc          IPK
+  24.10.5  mipsel_74kc          IPK
   24.10.5  mips_24kc            IPK
+  24.10.5  aarch64_generic      IPK
   24.10.5  aarch64_cortex-a53   IPK
   24.10.5  aarch64_cortex-a72   IPK
   24.10.5  aarch64_cortex-a76   IPK
   25.12.6  mipsel_24kc          APK
+  25.12.6  mipsel_74kc          APK
   25.12.6  mips_24kc            APK
+  25.12.6  aarch64_generic      APK
   25.12.6  aarch64_cortex-a53   APK
   25.12.6  aarch64_cortex-a72   APK
   25.12.6  aarch64_cortex-a76   APK
@@ -126,12 +133,16 @@ print_supported() {
 	cat <<'EOF'
 Поддерживаемые комбинации:
   24.10.5  mipsel_24kc          IPK
+  24.10.5  mipsel_74kc          IPK
   24.10.5  mips_24kc            IPK
+  24.10.5  aarch64_generic      IPK
   24.10.5  aarch64_cortex-a53   IPK
   24.10.5  aarch64_cortex-a72   IPK
   24.10.5  aarch64_cortex-a76   IPK
   25.12.6  mipsel_24kc          APK
+  25.12.6  mipsel_74kc          APK
   25.12.6  mips_24kc            APK
+  25.12.6  aarch64_generic      APK
   25.12.6  aarch64_cortex-a53   APK
   25.12.6  aarch64_cortex-a72   APK
   25.12.6  aarch64_cortex-a76   APK
@@ -307,8 +318,14 @@ asset_name() {
 		24.10.5:mipsel_24kc:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-24.10.5.zip"
 			;;
+		24.10.5:mipsel_74kc:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-mipsel_74kc-24.10.5.zip"
+			;;
 		24.10.5:mips_24kc:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-mips_24kc-24.10.5.zip"
+			;;
+		24.10.5:aarch64_generic:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-aarch64_generic-24.10.5.zip"
 			;;
 		24.10.5:aarch64_cortex-a53:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a53-24.10.5.zip"
@@ -322,8 +339,14 @@ asset_name() {
 		25.12.6:mipsel_24kc:apk)
 			printf '%s\n' "zapret2-openwrt-$1-25.12.6-apk.zip"
 			;;
+		25.12.6:mipsel_74kc:apk)
+			printf '%s\n' "zapret2-openwrt-$1-mipsel_74kc-25.12.6-apk.zip"
+			;;
 		25.12.6:mips_24kc:apk)
 			printf '%s\n' "zapret2-openwrt-$1-mips_24kc-25.12.6-apk.zip"
+			;;
+		25.12.6:aarch64_generic:apk)
+			printf '%s\n' "zapret2-openwrt-$1-aarch64_generic-25.12.6-apk.zip"
 			;;
 		25.12.6:aarch64_cortex-a53:apk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a53-25.12.6-apk.zip"
@@ -368,6 +391,35 @@ download_file() {
 		uclient-fetch) uclient-fetch -q -T 180 -O "$2" "$1" ;;
 		*) return 1 ;;
 	esac
+}
+
+install_apk_key() {
+	[ "$PKG_MGR" = apk ] || return 0
+	[ -s "$APK_KEY_PATH" ] && {
+		APK_KEY_READY=1
+		return 0
+	}
+
+	log "Установка ключа подписи APK..."
+	key_tmp="$WORKDIR/$APK_KEY_NAME"
+
+	for url in \
+		"https://github.com/$REPO/releases/download/v$VERSION/$APK_KEY_NAME" \
+		"https://raw.githubusercontent.com/$REPO/main/apk-keys/$APK_KEY_NAME"
+	do
+		rm -f "$key_tmp"
+		download_file "$url" "$key_tmp" || continue
+		grep -q 'BEGIN PUBLIC KEY' "$key_tmp" 2>/dev/null || continue
+		mkdir -p /etc/apk/keys 2>/dev/null || true
+		cp "$key_tmp" "$APK_KEY_PATH" 2>/dev/null || continue
+		chmod 644 "$APK_KEY_PATH" 2>/dev/null || true
+		APK_KEY_READY=1
+		log "Ключ установлен: $APK_KEY_PATH"
+		return 0
+	done
+
+	warn "Не удалось установить ключ подписи APK. Пакеты будут установлены с --allow-untrusted."
+	return 1
 }
 
 latest_version() {
@@ -458,10 +510,12 @@ pkg_add_local() {
 			opkg install "$@" >>"$PKG_LOG" 2>&1
 		fi
 	else
+		untrusted="--allow-untrusted"
+		[ "$APK_KEY_READY" = 1 ] && untrusted=""
 		if [ "$mode" = reinstall ]; then
-			apk add --allow-untrusted --force-non-repository --force-reinstall "$@" >>"$PKG_LOG" 2>&1
+			apk add $untrusted --force-non-repository --force-reinstall "$@" >>"$PKG_LOG" 2>&1
 		else
-			apk add --allow-untrusted --force-non-repository "$@" >>"$PKG_LOG" 2>&1
+			apk add $untrusted --force-non-repository "$@" >>"$PKG_LOG" 2>&1
 		fi
 	fi
 }
@@ -470,7 +524,9 @@ pkg_add_local_overwrite() {
 	if [ "$PKG_MGR" = opkg ]; then
 		opkg install --force-reinstall --force-overwrite "$@" >>"$PKG_LOG" 2>&1
 	else
-		apk add --allow-untrusted --force-non-repository --force-reinstall --force-overwrite "$@" >>"$PKG_LOG" 2>&1
+		untrusted="--allow-untrusted"
+		[ "$APK_KEY_READY" = 1 ] && untrusted=""
+		apk add $untrusted --force-non-repository --force-reinstall --force-overwrite "$@" >>"$PKG_LOG" 2>&1
 	fi
 }
 
@@ -926,6 +982,9 @@ print_plan() {
 	log "Формат пакетов: $PKG_FMT"
 	log "Версия: $VERSION"
 	log "Архив: $ASSET"
+	if [ "$PKG_FMT" = apk ]; then
+		log "Подпись APK: ключ $APK_KEY_NAME"
+	fi
 	if [ "$INSTALL_LUCI" = 1 ]; then
 		log "LuCI: установить luci-app-zapret2"
 	else
@@ -1033,6 +1092,7 @@ main() {
 	download_asset
 	extract_asset
 	select_packages
+	install_apk_key || true
 	install_main_packages
 	install_russian_language || true
 	run_uci_defaults
