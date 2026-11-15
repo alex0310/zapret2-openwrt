@@ -33,26 +33,37 @@ PKG_BUILD_DEPENDS:=!riscv64:luajit riscv64:lua libcap
 
 include $(INCLUDE_DIR)/package.mk
 
-ifneq ($(filter aarch64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+# Prebuilt Rust binaries are selected per package architecture. Most ARM
+# variants need separate binaries because their CPU, FPU and float ABI
+# differ; mipsel_24kc/mipsel_74kc share the default (no suffix) binaries.
+# ARCH_PACKAGES is the unquoted package architecture (CONFIG_TARGET_ARCH_PACKAGES
+# keeps the quotes from .config, so it cannot be matched directly).
+ifneq ($(filter aarch64%,$(ARCH) $(ARCH_PACKAGES)),)
   ZAPRET2_RUST_SUFFIX:=-aarch64
+else ifneq ($(filter x86_64%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-x86_64
+else ifneq ($(filter riscv64%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-riscv64
+else ifneq ($(filter mips64_octeonplus%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-mips64
+else ifneq ($(filter mips_mips32%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-mips32
+else ifneq ($(filter mipsel%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=
+else ifneq ($(filter mips%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-mips
+else ifneq ($(filter arm_cortex-a9_vfpv3-d16%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa9-vfpv3d16
+else ifneq ($(filter arm_cortex-a9_neon%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa9-neon
+else ifneq ($(filter arm_cortex-a9%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa9
+else ifneq ($(filter arm_xscale%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-xscale
+else ifneq ($(filter arm_fa526%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-fa526
 else
-  ifneq ($(filter x86_64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
-    ZAPRET2_RUST_SUFFIX:=-x86_64
-  else
-    ifneq ($(filter riscv64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
-      ZAPRET2_RUST_SUFFIX:=-riscv64
-    else
-      ifneq ($(filter mips%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
-        ifneq ($(filter mipsel%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
-          ZAPRET2_RUST_SUFFIX:=
-        else
-          ZAPRET2_RUST_SUFFIX:=-mips
-        endif
-      else
-        ZAPRET2_RUST_SUFFIX:=
-      endif
-    endif
-  endif
+  ZAPRET2_RUST_SUFFIX:=
 endif
 
 ifneq ($(findstring 25.12,$(CONFIG_VERSION_REPO)),)

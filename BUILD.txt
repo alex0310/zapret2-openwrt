@@ -3,6 +3,9 @@ zapret2-openwrt 1.0.0-r1
 
 Packages:
   zapret2              mipsel_24kc, mipsel_74kc, mips_24kc,
+                       mips_mips32, mips64_octeonplus,
+                       arm_xscale, arm_fa526, arm_cortex-a9,
+                       arm_cortex-a9_neon, arm_cortex-a9_vfpv3-d16,
                        aarch64_generic, aarch64_cortex-a53,
                        aarch64_cortex-a72, aarch64_cortex-a76,
                        x86_64, riscv64_generic
@@ -10,16 +13,30 @@ Packages:
 
 Supported OpenWrt SDKs:
   24.10.5   ramips/mt76x8       gcc 13.3.0   musl   mipsel_24kc
-  24.10.5   bcm47xx/mips74k    gcc 13.3.0   musl   mipsel_74kc
+  24.10.5   bcm47xx/mips74k     gcc 13.3.0   musl   mipsel_74kc
   24.10.5   ath79/generic       gcc 13.3.0   musl   mips_24kc
+  24.10.5   bmips/bcm6328       gcc 13.3.0   musl   mips_mips32
+  24.10.5   octeon/generic      gcc 13.3.0   musl   mips64_octeonplus
+  24.10.5   kirkwood/generic    gcc 13.3.0   musl   arm_xscale
+  24.10.5   gemini/generic      gcc 13.3.0   musl   arm_fa526
+  24.10.5   bcm53xx/generic     gcc 13.3.0   musl   arm_cortex-a9
+  24.10.5   imx/cortexa9        gcc 13.3.0   musl   arm_cortex-a9_neon
+  24.10.5   mvebu/cortexa9      gcc 13.3.0   musl   arm_cortex-a9_vfpv3-d16
   24.10.5   armsr/armv8         gcc 13.3.0   musl   aarch64_generic
   24.10.5   mediatek/filogic    gcc 13.3.0   musl   aarch64_cortex-a53
   24.10.5   mvebu/cortexa72     gcc 13.3.0   musl   aarch64_cortex-a72
   24.10.5   bcm27xx/bcm2712     gcc 13.3.0   musl   aarch64_cortex-a76
   24.10.5   x86/64              gcc 13.3.0   musl   x86_64
   25.12.6   ramips/mt76x8       gcc 14.3.0   musl   mipsel_24kc
-  25.12.6   bcm47xx/mips74k    gcc 14.3.0   musl   mipsel_74kc
+  25.12.6   bcm47xx/mips74k     gcc 14.3.0   musl   mipsel_74kc
   25.12.6   ath79/generic       gcc 14.3.0   musl   mips_24kc
+  25.12.6   bmips/bcm6328       gcc 14.3.0   musl   mips_mips32
+  25.12.6   octeon/generic      gcc 14.3.0   musl   mips64_octeonplus
+  25.12.6   kirkwood/generic    gcc 14.3.0   musl   arm_xscale
+  25.12.6   gemini/generic      gcc 14.3.0   musl   arm_fa526
+  25.12.6   bcm53xx/generic     gcc 14.3.0   musl   arm_cortex-a9
+  25.12.6   imx/cortexa9        gcc 14.3.0   musl   arm_cortex-a9_neon
+  25.12.6   mvebu/cortexa9      gcc 14.3.0   musl   arm_cortex-a9_vfpv3-d16
   25.12.6   armsr/armv8         gcc 14.3.0   musl   aarch64_generic
   25.12.6   mediatek/filogic    gcc 14.3.0   musl   aarch64_cortex-a53
   25.12.6   mvebu/cortexa72     gcc 14.3.0   musl   aarch64_cortex-a72
@@ -33,10 +50,24 @@ with ath79/generic. The aarch64_generic packages are built with the
 armsr/armv8 SDK, aarch64_cortex-a53 with mediatek/filogic,
 aarch64_cortex-a72 with mvebu/cortexa72 and aarch64_cortex-a76 with
 bcm27xx/bcm2712, x86_64 with x86/64 and riscv64_generic with
-sifiveu/generic. The prebuilt Rust binaries are generic aarch64 and are
-shared by all four aarch64 package architectures; the mipsel Rust
-binaries are shared by mipsel_24kc and mipsel_74kc; x86_64 and
-riscv64_generic have their own Rust binaries.
+sifiveu/generic. The remaining package architectures use the SDKs listed
+for their target in the table above (bmips/bcm6328, octeon/generic,
+kirkwood/generic, gemini/generic, bcm53xx/generic, imx/cortexa9 and
+mvebu/cortexa9). All packages use musl, including the two soft-float
+MIPS targets.
+
+The prebuilt Rust binaries are generic aarch64 and are shared by all four
+aarch64 package architectures; the mipsel Rust binaries are shared by
+mipsel_24kc and mipsel_74kc. Every other package architecture has its
+own Rust binaries, because the CPU, FPU and float ABI differ:
+  mips_mips32             MIPS32 (r1), big-endian, soft-float
+  mips64_octeonplus       MIPS64r2/Octeon+, n64 ABI, soft-float
+  arm_xscale              ARMv5TE, soft-float
+  arm_fa526               ARMv4T, soft-float
+  arm_cortex-a9           ARMv7-A, soft-float, no NEON
+  arm_cortex-a9_neon      ARMv7-A, hard-float, VFPv3-D16 + NEON
+  arm_cortex-a9_vfpv3-d16 ARMv7-A, hard-float, VFPv3-D16
+  x86_64, riscv64_generic own trees
 
 RISC-V packages are built for 25.12.6 only. The 24.10.5 feeds have no
 LuaJIT for RISC-V (HAS_LUAJIT_ARCH is not set and the package
@@ -70,6 +101,34 @@ The repository contains prebuilt binaries in:
   package/zapret2/files-x86_64-25.12/opt/zapret2/zapret2-finder
   package/zapret2/files-riscv64-25.12/usr/bin/zapret2
   package/zapret2/files-riscv64-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-mips32/usr/bin/zapret2
+  package/zapret2/files-mips32/opt/zapret2/zapret2-finder
+  package/zapret2/files-mips64/usr/bin/zapret2
+  package/zapret2/files-mips64/opt/zapret2/zapret2-finder
+  package/zapret2/files-xscale/usr/bin/zapret2
+  package/zapret2/files-xscale/opt/zapret2/zapret2-finder
+  package/zapret2/files-fa526/usr/bin/zapret2
+  package/zapret2/files-fa526/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa9/usr/bin/zapret2
+  package/zapret2/files-cortexa9/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa9-vfpv3d16/usr/bin/zapret2
+  package/zapret2/files-cortexa9-vfpv3d16/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa9-neon/usr/bin/zapret2
+  package/zapret2/files-cortexa9-neon/opt/zapret2/zapret2-finder
+  package/zapret2/files-mips32-25.12/usr/bin/zapret2
+  package/zapret2/files-mips32-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-mips64-25.12/usr/bin/zapret2
+  package/zapret2/files-mips64-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-xscale-25.12/usr/bin/zapret2
+  package/zapret2/files-xscale-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-fa526-25.12/usr/bin/zapret2
+  package/zapret2/files-fa526-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa9-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa9-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa9-vfpv3d16-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa9-vfpv3d16-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa9-neon-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa9-neon-25.12/opt/zapret2/zapret2-finder
 
 Build the Rust binaries for mipsel_24kc / 24.10.5:
   SDK=/path/to/openwrt-sdk-24.10.5-ramips-mt76x8_gcc-13.3.0_musl.Linux-x86_64
@@ -186,13 +245,50 @@ Build the Rust binaries for riscv64_generic / 25.12.6:
   cargo +nightly build --release --target riscv64gc-unknown-linux-musl \
     -Z build-std=std,panic_abort --target-dir target-riscv64-25.12
 
+Build the Rust binaries for the remaining ARM and MIPS package
+architectures (shown for 24.10.5; use the matching 25.12.6 SDK and a
+target-*-25.12 directory for 25.12.6). Select the target and extra flags
+from this table:
+
+  package arch            rust target                        extra flags
+  mips_mips32             mips-unknown-linux-musl            -C target-cpu=mips32 -C target-feature=-mips32r2 -C link-arg=-mips32
+  mips64_octeonplus       mips64-openwrt-linux-musl          -C link-arg=-march=octeon+ -C link-arg=-mabi=64
+  arm_xscale              armv5te-unknown-linux-musleabi     none
+  arm_fa526               armv4t-unknown-linux-musleabi      custom target spec, see below
+  arm_cortex-a9           armv7-unknown-linux-musleabi       none
+  arm_cortex-a9_vfpv3-d16 armv7-unknown-linux-musleabihf     none
+  arm_cortex-a9_neon      armv7-unknown-linux-musleabihf     -C target-feature=+neon
+
+Point CC_<target>, AR_<target> and CARGO_TARGET_<TARGET>_LINKER at the
+cross gcc and ar of the SDK toolchain, for example:
+  export CC_armv7_unknown_linux_musleabihf=$TC/bin/arm-openwrt-linux-gcc
+  export AR_armv7_unknown_linux_musleabihf=$TC/bin/arm-openwrt-linux-ar
+  export CARGO_TARGET_ARMV7_UNKNOWN_LINUX_MUSLEABIHF_LINKER=$TC/bin/arm-openwrt-linux-gcc
+  export RUSTFLAGS="-C target-feature=-crt-static <extra>"
+  cd rust
+  cargo +nightly build --release --target <target> \
+    -Z build-std=std,panic_abort --target-dir target-<arch>
+
+arm_fa526 has no built-in musl target. Use a custom target spec file
+named armv4t-unknown-linux-musleabi.json (ARMv4T, soft-float, musl,
+dynamic linking, +soft-float,+strict-align) and pass its path as --target
+together with -Z json-target-spec. readelf -A must report Tag_CPU_arch
+v4T and no ARMv5+ instructions may be present.
+
+mips_mips32 must not contain MIPS32r2 instructions, because the bmips
+kernel is built for MIPS32 release 1. -C target-feature=-mips32r2 removes
+the r2 features of the default mips-unknown-linux-musl target; readelf -h
+must report "mips32" (not "mips32r2"). mips64 uses the built-in
+mips64-openwrt-linux-musl target, which is already MIPS64r2 and n64 ABI.
+
 Copy the resulting binaries to the matching files* tree.
-The package Makefile selects the mips and aarch64 trees automatically from
-ARCH and CONFIG_TARGET_ARCH_PACKAGES. The same aarch64 binaries are used
-for aarch64_generic, aarch64_cortex-a53, aarch64_cortex-a72 and
+The package Makefile selects the files* tree automatically from
+ARCH_PACKAGES (the package architecture). The same aarch64 binaries are used for
+aarch64_generic, aarch64_cortex-a53, aarch64_cortex-a72 and
 aarch64_cortex-a76; the same mipsel binaries are used for mipsel_24kc and
-mipsel_74kc; x86_64 and riscv64_generic (25.12.6 only) use their own
-trees.
+mipsel_74kc. Every other package architecture, including x86_64 and
+riscv64_generic, has its own files* tree; 25.12.6 uses the -25.12
+variants.
 
 OpenWrt packages
 ----------------
@@ -233,9 +329,11 @@ Usage examples:
   sh install-zapret2.sh 1.0.0-r1 --dry-run
 
 The installer targets OpenWrt 24.10.5 (IPK) and 25.12.6 (APK), and the
-mipsel_24kc, mipsel_74kc, mips_24kc, aarch64_generic,
-aarch64_cortex-a53, aarch64_cortex-a72, aarch64_cortex-a76 and x86_64
-package architectures, plus riscv64_generic on 25.12.6 (RISC-V is not
+mipsel_24kc, mipsel_74kc, mips_24kc, mips_mips32, mips64_octeonplus,
+arm_xscale, arm_fa526, arm_cortex-a9, arm_cortex-a9_neon,
+arm_cortex-a9_vfpv3-d16, aarch64_generic, aarch64_cortex-a53,
+aarch64_cortex-a72, aarch64_cortex-a76 and x86_64 package architectures,
+plus riscv64_generic on 25.12.6 (RISC-V is not
 supported on 24.10.5 because its feeds have no LuaJIT for RISC-V). On
 other 24.10.x or 25.12.x releases it prints a warning, recommends the
 tested release, and waits for Enter before continuing. Use
@@ -261,6 +359,20 @@ Release archives
   zapret2-openwrt-1.0.0-r1-x86_64-24.10.5.zip
   zapret2-openwrt-1.0.0-r1-x86_64-25.12.6-apk.zip
   zapret2-openwrt-1.0.0-r1-riscv64_generic-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-mips_mips32-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-mips_mips32-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-mips64_octeonplus-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-mips64_octeonplus-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_xscale-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_xscale-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_fa526-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_fa526-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a9-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a9-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_neon-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_neon-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_vfpv3-d16-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_vfpv3-d16-25.12.6-apk.zip
 
 The 25.12.6 IPK build is optional and is not part of the release archives.
 

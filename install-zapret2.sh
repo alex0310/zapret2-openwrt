@@ -112,46 +112,74 @@ zapret2 — установщик для OpenWrt
   ZAPRET2_PKG_LOG        Путь к логу пакетного менеджера.
 
 Поддерживаемые комбинации:
-  24.10.5  mipsel_24kc          IPK
-  24.10.5  mipsel_74kc          IPK
-  24.10.5  mips_24kc            IPK
-  24.10.5  aarch64_generic      IPK
-  24.10.5  aarch64_cortex-a53   IPK
-  24.10.5  aarch64_cortex-a72   IPK
-  24.10.5  aarch64_cortex-a76   IPK
-  24.10.5  x86_64               IPK
-  25.12.6  mipsel_24kc          APK
-  25.12.6  mipsel_74kc          APK
-  25.12.6  mips_24kc            APK
-  25.12.6  aarch64_generic      APK
-  25.12.6  aarch64_cortex-a53   APK
-  25.12.6  aarch64_cortex-a72   APK
-  25.12.6  aarch64_cortex-a76   APK
-  25.12.6  x86_64               APK
-  25.12.6  riscv64_generic      APK
+  24.10.5  mipsel_24kc              IPK
+  24.10.5  mipsel_74kc              IPK
+  24.10.5  mips_24kc                IPK
+  24.10.5  mips_mips32              IPK
+  24.10.5  mips64_octeonplus        IPK
+  24.10.5  arm_xscale               IPK
+  24.10.5  arm_fa526                IPK
+  24.10.5  arm_cortex-a9            IPK
+  24.10.5  arm_cortex-a9_neon       IPK
+  24.10.5  arm_cortex-a9_vfpv3-d16  IPK
+  24.10.5  aarch64_generic          IPK
+  24.10.5  aarch64_cortex-a53       IPK
+  24.10.5  aarch64_cortex-a72       IPK
+  24.10.5  aarch64_cortex-a76       IPK
+  24.10.5  x86_64                   IPK
+  25.12.6  mipsel_24kc              APK
+  25.12.6  mipsel_74kc              APK
+  25.12.6  mips_24kc                APK
+  25.12.6  mips_mips32              APK
+  25.12.6  mips64_octeonplus        APK
+  25.12.6  arm_xscale               APK
+  25.12.6  arm_fa526                APK
+  25.12.6  arm_cortex-a9            APK
+  25.12.6  arm_cortex-a9_neon       APK
+  25.12.6  arm_cortex-a9_vfpv3-d16  APK
+  25.12.6  aarch64_generic          APK
+  25.12.6  aarch64_cortex-a53       APK
+  25.12.6  aarch64_cortex-a72       APK
+  25.12.6  aarch64_cortex-a76       APK
+  25.12.6  x86_64                   APK
+  25.12.6  riscv64_generic          APK
 EOF
 }
 
 print_supported() {
 	cat <<'EOF'
 Поддерживаемые комбинации:
-  24.10.5  mipsel_24kc          IPK
-  24.10.5  mipsel_74kc          IPK
-  24.10.5  mips_24kc            IPK
-  24.10.5  aarch64_generic      IPK
-  24.10.5  aarch64_cortex-a53   IPK
-  24.10.5  aarch64_cortex-a72   IPK
-  24.10.5  aarch64_cortex-a76   IPK
-  24.10.5  x86_64               IPK
-  25.12.6  mipsel_24kc          APK
-  25.12.6  mipsel_74kc          APK
-  25.12.6  mips_24kc            APK
-  25.12.6  aarch64_generic      APK
-  25.12.6  aarch64_cortex-a53   APK
-  25.12.6  aarch64_cortex-a72   APK
-  25.12.6  aarch64_cortex-a76   APK
-  25.12.6  x86_64               APK
-  25.12.6  riscv64_generic      APK
+  24.10.5  mipsel_24kc              IPK
+  24.10.5  mipsel_74kc              IPK
+  24.10.5  mips_24kc                IPK
+  24.10.5  mips_mips32              IPK
+  24.10.5  mips64_octeonplus        IPK
+  24.10.5  arm_xscale               IPK
+  24.10.5  arm_fa526                IPK
+  24.10.5  arm_cortex-a9            IPK
+  24.10.5  arm_cortex-a9_neon       IPK
+  24.10.5  arm_cortex-a9_vfpv3-d16  IPK
+  24.10.5  aarch64_generic          IPK
+  24.10.5  aarch64_cortex-a53       IPK
+  24.10.5  aarch64_cortex-a72       IPK
+  24.10.5  aarch64_cortex-a76       IPK
+  24.10.5  x86_64                   IPK
+  25.12.6  mipsel_24kc              APK
+  25.12.6  mipsel_74kc              APK
+  25.12.6  mips_24kc                APK
+  25.12.6  mips_mips32              APK
+  25.12.6  mips64_octeonplus        APK
+  25.12.6  arm_xscale               APK
+  25.12.6  arm_fa526                APK
+  25.12.6  arm_cortex-a9            APK
+  25.12.6  arm_cortex-a9_neon       APK
+  25.12.6  arm_cortex-a9_vfpv3-d16  APK
+  25.12.6  aarch64_generic          APK
+  25.12.6  aarch64_cortex-a53       APK
+  25.12.6  aarch64_cortex-a72       APK
+  25.12.6  aarch64_cortex-a76       APK
+  25.12.6  x86_64                   APK
+  25.12.6  riscv64_generic          APK
 EOF
 }
 
@@ -330,6 +358,27 @@ asset_name() {
 		24.10.5:mips_24kc:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-mips_24kc-24.10.5.zip"
 			;;
+		24.10.5:mips_mips32:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-mips_mips32-24.10.5.zip"
+			;;
+		24.10.5:mips64_octeonplus:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-mips64_octeonplus-24.10.5.zip"
+			;;
+		24.10.5:arm_xscale:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_xscale-24.10.5.zip"
+			;;
+		24.10.5:arm_fa526:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_fa526-24.10.5.zip"
+			;;
+		24.10.5:arm_cortex-a9:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_cortex-a9-24.10.5.zip"
+			;;
+		24.10.5:arm_cortex-a9_neon:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_cortex-a9_neon-24.10.5.zip"
+			;;
+		24.10.5:arm_cortex-a9_vfpv3-d16:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_cortex-a9_vfpv3-d16-24.10.5.zip"
+			;;
 		24.10.5:aarch64_generic:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_generic-24.10.5.zip"
 			;;
@@ -353,6 +402,27 @@ asset_name() {
 			;;
 		25.12.6:mips_24kc:apk)
 			printf '%s\n' "zapret2-openwrt-$1-mips_24kc-25.12.6-apk.zip"
+			;;
+		25.12.6:mips_mips32:apk)
+			printf '%s\n' "zapret2-openwrt-$1-mips_mips32-25.12.6-apk.zip"
+			;;
+		25.12.6:mips64_octeonplus:apk)
+			printf '%s\n' "zapret2-openwrt-$1-mips64_octeonplus-25.12.6-apk.zip"
+			;;
+		25.12.6:arm_xscale:apk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_xscale-25.12.6-apk.zip"
+			;;
+		25.12.6:arm_fa526:apk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_fa526-25.12.6-apk.zip"
+			;;
+		25.12.6:arm_cortex-a9:apk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_cortex-a9-25.12.6-apk.zip"
+			;;
+		25.12.6:arm_cortex-a9_neon:apk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_cortex-a9_neon-25.12.6-apk.zip"
+			;;
+		25.12.6:arm_cortex-a9_vfpv3-d16:apk)
+			printf '%s\n' "zapret2-openwrt-$1-arm_cortex-a9_vfpv3-d16-25.12.6-apk.zip"
 			;;
 		25.12.6:aarch64_generic:apk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_generic-25.12.6-apk.zip"
