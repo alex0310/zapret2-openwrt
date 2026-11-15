@@ -4,7 +4,8 @@ zapret2-openwrt 1.0.0-r1
 Packages:
   zapret2              mipsel_24kc, mipsel_74kc, mips_24kc,
                        aarch64_generic, aarch64_cortex-a53,
-                       aarch64_cortex-a72, aarch64_cortex-a76
+                       aarch64_cortex-a72, aarch64_cortex-a76,
+                       x86_64, riscv64_generic
   luci-app-zapret2     all / noarch
 
 Supported OpenWrt SDKs:
@@ -15,6 +16,7 @@ Supported OpenWrt SDKs:
   24.10.5   mediatek/filogic    gcc 13.3.0   musl   aarch64_cortex-a53
   24.10.5   mvebu/cortexa72     gcc 13.3.0   musl   aarch64_cortex-a72
   24.10.5   bcm27xx/bcm2712     gcc 13.3.0   musl   aarch64_cortex-a76
+  24.10.5   x86/64              gcc 13.3.0   musl   x86_64
   25.12.6   ramips/mt76x8       gcc 14.3.0   musl   mipsel_24kc
   25.12.6   bcm47xx/mips74k    gcc 14.3.0   musl   mipsel_74kc
   25.12.6   ath79/generic       gcc 14.3.0   musl   mips_24kc
@@ -22,17 +24,28 @@ Supported OpenWrt SDKs:
   25.12.6   mediatek/filogic    gcc 14.3.0   musl   aarch64_cortex-a53
   25.12.6   mvebu/cortexa72     gcc 14.3.0   musl   aarch64_cortex-a72
   25.12.6   bcm27xx/bcm2712     gcc 14.3.0   musl   aarch64_cortex-a76
+  25.12.6   x86/64              gcc 14.3.0   musl   x86_64
+  25.12.6   sifiveu/generic     gcc 14.3.0   musl   riscv64_generic
 
 The mipsel_24kc packages are built with the ramips/mt76x8 SDK, the
 mipsel_74kc packages with bcm47xx/mips74k and the mips_24kc packages
 with ath79/generic. The aarch64_generic packages are built with the
 armsr/armv8 SDK, aarch64_cortex-a53 with mediatek/filogic,
 aarch64_cortex-a72 with mvebu/cortexa72 and aarch64_cortex-a76 with
-bcm27xx/bcm2712. The prebuilt Rust binaries are generic aarch64 and are
+bcm27xx/bcm2712, x86_64 with x86/64 and riscv64_generic with
+sifiveu/generic. The prebuilt Rust binaries are generic aarch64 and are
 shared by all four aarch64 package architectures; the mipsel Rust
-binaries are shared by mipsel_24kc and mipsel_74kc. They can be installed
-on other targets with the same package architecture as long as the target
-feed provides the required kernel modules:
+binaries are shared by mipsel_24kc and mipsel_74kc; x86_64 and
+riscv64_generic have their own Rust binaries.
+
+RISC-V packages are built for 25.12.6 only. The 24.10.5 feeds have no
+LuaJIT for RISC-V (HAS_LUAJIT_ARCH is not set and the package
+architecture of sifiveu/generic is riscv64_riscv64), so zapret2 cannot be
+built or installed there.
+
+The packages can be installed on other targets with the same package
+architecture as long as the target feed provides the required kernel
+modules:
   kmod-nft-queue, kmod-nfnetlink-queue, kmod-nf-conntrack
 
 Rust toolchain
@@ -51,6 +64,12 @@ The repository contains prebuilt binaries in:
   package/zapret2/files-aarch64/opt/zapret2/zapret2-finder
   package/zapret2/files-aarch64-25.12/usr/bin/zapret2
   package/zapret2/files-aarch64-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-x86_64/usr/bin/zapret2
+  package/zapret2/files-x86_64/opt/zapret2/zapret2-finder
+  package/zapret2/files-x86_64-25.12/usr/bin/zapret2
+  package/zapret2/files-x86_64-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-riscv64-25.12/usr/bin/zapret2
+  package/zapret2/files-riscv64-25.12/opt/zapret2/zapret2-finder
 
 Build the Rust binaries for mipsel_24kc / 24.10.5:
   SDK=/path/to/openwrt-sdk-24.10.5-ramips-mt76x8_gcc-13.3.0_musl.Linux-x86_64
@@ -128,12 +147,52 @@ Build the Rust binaries for aarch64_cortex-a53 / 25.12.6:
   cargo +nightly build --release --target aarch64-unknown-linux-musl \
     -Z build-std=std,panic_abort --target-dir target-aarch64-25.12
 
+Build the Rust binaries for x86_64 / 24.10.5:
+  SDK=/path/to/openwrt-sdk-24.10.5-x86-64_gcc-13.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-x86_64_gcc-13.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_x86_64_unknown_linux_musl="$TC/bin/x86_64-openwrt-linux-musl-gcc"
+  export AR_x86_64_unknown_linux_musl="$TC/bin/x86_64-openwrt-linux-musl-ar"
+  export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/x86_64-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target x86_64-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-x86_64
+
+Build the Rust binaries for x86_64 / 25.12.6:
+  SDK=/path/to/openwrt-sdk-25.12.6-x86-64_gcc-14.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-x86_64_gcc-14.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_x86_64_unknown_linux_musl="$TC/bin/x86_64-openwrt-linux-musl-gcc"
+  export AR_x86_64_unknown_linux_musl="$TC/bin/x86_64-openwrt-linux-musl-ar"
+  export CARGO_TARGET_X86_64_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/x86_64-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target x86_64-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-x86_64-25.12
+
+Build the Rust binaries for riscv64_generic / 25.12.6:
+  SDK=/path/to/openwrt-sdk-25.12.6-sifiveu-generic_gcc-14.3.0_musl.Linux-x86_64
+  TC=$SDK/staging_dir/toolchain-riscv64_generic_gcc-14.3.0_musl
+  export PATH="$TC/bin:$PATH"
+  export STAGING_DIR="$SDK/staging_dir"
+  export CC_riscv64gc_unknown_linux_musl="$TC/bin/riscv64-openwrt-linux-musl-gcc"
+  export AR_riscv64gc_unknown_linux_musl="$TC/bin/riscv64-openwrt-linux-musl-ar"
+  export CARGO_TARGET_RISCV64GC_UNKNOWN_LINUX_MUSL_LINKER="$TC/bin/riscv64-openwrt-linux-musl-gcc"
+  export RUSTFLAGS="-C target-feature=-crt-static"
+  cd rust
+  cargo +nightly build --release --target riscv64gc-unknown-linux-musl \
+    -Z build-std=std,panic_abort --target-dir target-riscv64-25.12
+
 Copy the resulting binaries to the matching files* tree.
 The package Makefile selects the mips and aarch64 trees automatically from
 ARCH and CONFIG_TARGET_ARCH_PACKAGES. The same aarch64 binaries are used
 for aarch64_generic, aarch64_cortex-a53, aarch64_cortex-a72 and
 aarch64_cortex-a76; the same mipsel binaries are used for mipsel_24kc and
-mipsel_74kc.
+mipsel_74kc; x86_64 and riscv64_generic (25.12.6 only) use their own
+trees.
 
 OpenWrt packages
 ----------------
@@ -175,8 +234,10 @@ Usage examples:
 
 The installer targets OpenWrt 24.10.5 (IPK) and 25.12.6 (APK), and the
 mipsel_24kc, mipsel_74kc, mips_24kc, aarch64_generic,
-aarch64_cortex-a53, aarch64_cortex-a72 and aarch64_cortex-a76 package
-architectures. On other 24.10.x or 25.12.x releases it prints a warning, recommends the
+aarch64_cortex-a53, aarch64_cortex-a72, aarch64_cortex-a76 and x86_64
+package architectures, plus riscv64_generic on 25.12.6 (RISC-V is not
+supported on 24.10.5 because its feeds have no LuaJIT for RISC-V). On
+other 24.10.x or 25.12.x releases it prints a warning, recommends the
 tested release, and waits for Enter before continuing. Use
 --allow-unsupported for non-interactive runs. It does not install
 sysupgrade images.
@@ -197,6 +258,9 @@ Release archives
   zapret2-openwrt-1.0.0-r1-aarch64_generic-25.12.6-apk.zip
   zapret2-openwrt-1.0.0-r1-mipsel_74kc-24.10.5.zip
   zapret2-openwrt-1.0.0-r1-mipsel_74kc-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-x86_64-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-x86_64-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-riscv64_generic-25.12.6-apk.zip
 
 The 25.12.6 IPK build is optional and is not part of the release archives.
 

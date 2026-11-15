@@ -119,6 +119,7 @@ zapret2 — установщик для OpenWrt
   24.10.5  aarch64_cortex-a53   IPK
   24.10.5  aarch64_cortex-a72   IPK
   24.10.5  aarch64_cortex-a76   IPK
+  24.10.5  x86_64               IPK
   25.12.6  mipsel_24kc          APK
   25.12.6  mipsel_74kc          APK
   25.12.6  mips_24kc            APK
@@ -126,6 +127,8 @@ zapret2 — установщик для OpenWrt
   25.12.6  aarch64_cortex-a53   APK
   25.12.6  aarch64_cortex-a72   APK
   25.12.6  aarch64_cortex-a76   APK
+  25.12.6  x86_64               APK
+  25.12.6  riscv64_generic      APK
 EOF
 }
 
@@ -139,6 +142,7 @@ print_supported() {
   24.10.5  aarch64_cortex-a53   IPK
   24.10.5  aarch64_cortex-a72   IPK
   24.10.5  aarch64_cortex-a76   IPK
+  24.10.5  x86_64               IPK
   25.12.6  mipsel_24kc          APK
   25.12.6  mipsel_74kc          APK
   25.12.6  mips_24kc            APK
@@ -146,6 +150,8 @@ print_supported() {
   25.12.6  aarch64_cortex-a53   APK
   25.12.6  aarch64_cortex-a72   APK
   25.12.6  aarch64_cortex-a76   APK
+  25.12.6  x86_64               APK
+  25.12.6  riscv64_generic      APK
 EOF
 }
 
@@ -336,6 +342,9 @@ asset_name() {
 		24.10.5:aarch64_cortex-a76:ipk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a76-24.10.5.zip"
 			;;
+		24.10.5:x86_64:ipk)
+			printf '%s\n' "zapret2-openwrt-$1-x86_64-24.10.5.zip"
+			;;
 		25.12.6:mipsel_24kc:apk)
 			printf '%s\n' "zapret2-openwrt-$1-25.12.6-apk.zip"
 			;;
@@ -356,6 +365,12 @@ asset_name() {
 			;;
 		25.12.6:aarch64_cortex-a76:apk)
 			printf '%s\n' "zapret2-openwrt-$1-aarch64_cortex-a76-25.12.6-apk.zip"
+			;;
+		25.12.6:x86_64:apk)
+			printf '%s\n' "zapret2-openwrt-$1-x86_64-25.12.6-apk.zip"
+			;;
+		25.12.6:riscv64_generic:apk)
+			printf '%s\n' "zapret2-openwrt-$1-riscv64_generic-25.12.6-apk.zip"
 			;;
 		*)
 			return 1
@@ -1072,6 +1087,14 @@ main() {
 	fi
 
 	resolve_version
+
+	case "$ARCH" in
+		riscv64*)
+			if [ "$OWRT_USE" = 24.10.5 ]; then
+				die "Для архитектуры $ARCH пакеты доступны только для OpenWrt 25.12.6: в 24.10.5 нет LuaJIT для RISC-V."
+			fi
+			;;
+	esac
 
 	ASSET=$(asset_name "$VERSION" "$OWRT_USE" "$ARCH" "$PKG_FMT") || {
 		print_supported

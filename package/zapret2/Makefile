@@ -10,24 +10,48 @@ PKG_HASH:=b778c9fda24de6d534881ce6c9ff5817ea245163d3b96dc1c1fd491704252e60
 PKG_BUILD_DIR:=$(BUILD_DIR)/zapret2-1.0.2
 
 PKG_BUILD_PARALLEL:=1
-PKG_BUILD_DEPENDS:=luajit libcap
 PKG_MAINTAINER:=bol-van
 PKG_LICENSE:=MIT
 PKG_LICENSE_FILES:=docs/LICENSE.txt
+
+# LuaJIT 2.1 has no RISC-V backend, so LuaJIT (and OpenResty luajit2)
+# cannot be built for riscv64. Use the portable Lua 5.1 library there.
+ifneq ($(filter riscv64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+  ZAPRET2_LUA_JIT:=0
+  ZAPRET2_LUA_CFLAGS:=-I$(STAGING_DIR)/usr/include
+  ZAPRET2_LUA_LIB:=-L$(STAGING_DIR)/usr/lib -llua
+else
+  ZAPRET2_LUA_JIT:=1
+  ZAPRET2_LUA_CFLAGS:=-I$(STAGING_DIR)/usr/include/luajit-2.1
+  ZAPRET2_LUA_LIB:=-L$(STAGING_DIR)/usr/lib -lluajit-5.1
+endif
+
+# Runtime and build dependencies must use Kconfig conditions, because the
+# package metadata is dumped (DUMP=1) without reading .config, where ARCH
+# and CONFIG_TARGET_ARCH_PACKAGES are not available yet.
+PKG_BUILD_DEPENDS:=!riscv64:luajit riscv64:lua libcap
 
 include $(INCLUDE_DIR)/package.mk
 
 ifneq ($(filter aarch64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
   ZAPRET2_RUST_SUFFIX:=-aarch64
 else
-  ifneq ($(filter mips%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
-    ifneq ($(filter mipsel%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
-      ZAPRET2_RUST_SUFFIX:=
-    else
-      ZAPRET2_RUST_SUFFIX:=-mips
-    endif
+  ifneq ($(filter x86_64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+    ZAPRET2_RUST_SUFFIX:=-x86_64
   else
-    ZAPRET2_RUST_SUFFIX:=
+    ifneq ($(filter riscv64%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+      ZAPRET2_RUST_SUFFIX:=-riscv64
+    else
+      ifneq ($(filter mips%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+        ifneq ($(filter mipsel%,$(ARCH) $(CONFIG_TARGET_ARCH_PACKAGES)),)
+          ZAPRET2_RUST_SUFFIX:=
+        else
+          ZAPRET2_RUST_SUFFIX:=-mips
+        endif
+      else
+        ZAPRET2_RUST_SUFFIX:=
+      endif
+    endif
   endif
 endif
 
@@ -43,7 +67,7 @@ define Package/zapret2
   SUBMENU:=Web Servers/Proxies
   TITLE:=DPI bypass tool using nfqws2
   URL:=https://github.com/bol-van/zapret2
-  DEPENDS:=+libnetfilter-queue +libnfnetlink +libmnl +zlib +luajit \
+  DEPENDS:=+libnetfilter-queue +libnfnetlink +libmnl +zlib +!riscv64:luajit +riscv64:liblua \
 	+kmod-nft-queue +kmod-nfnetlink-queue +kmod-nf-conntrack \
 	+nftables +gzip +curl +ncat +ca-bundle +uci
 endef
@@ -59,9 +83,9 @@ define Build/Compile
 		CC="$(TARGET_CC)" \
 		CFLAGS="$(TARGET_CFLAGS) $(TARGET_CPPFLAGS)" \
 		LDFLAGS="$(TARGET_LDFLAGS)" \
-		LUA_JIT=1 \
-		LUA_CFLAGS="-I$(STAGING_DIR)/usr/include/luajit-2.1" \
-		LUA_LIB="-L$(STAGING_DIR)/usr/lib -lluajit-5.1" \
+		LUA_JIT=$(ZAPRET2_LUA_JIT) \
+		LUA_CFLAGS="$(ZAPRET2_LUA_CFLAGS)" \
+		LUA_LIB="$(ZAPRET2_LUA_LIB)" \
 		nfqws2
 	$(MAKE) -C $(PKG_BUILD_DIR)/mdig \
 		CC="$(TARGET_CC)" \
