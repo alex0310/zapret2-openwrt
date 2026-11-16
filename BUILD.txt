@@ -6,6 +6,9 @@ Packages:
                        mips_mips32, mips64_octeonplus,
                        arm_xscale, arm_fa526, arm_cortex-a9,
                        arm_cortex-a9_neon, arm_cortex-a9_vfpv3-d16,
+                       arm_cortex-a7, arm_cortex-a7_vfpv4,
+                       arm_cortex-a7_neon-vfpv4, arm_cortex-a8_vfpv3,
+                       arm_cortex-a15_neon-vfpv4,
                        aarch64_generic, aarch64_cortex-a53,
                        aarch64_cortex-a72, aarch64_cortex-a76,
                        x86_64, riscv64_generic
@@ -22,6 +25,11 @@ Supported OpenWrt SDKs:
   24.10.5   bcm53xx/generic     gcc 13.3.0   musl   arm_cortex-a9
   24.10.5   imx/cortexa9        gcc 13.3.0   musl   arm_cortex-a9_neon
   24.10.5   mvebu/cortexa9      gcc 13.3.0   musl   arm_cortex-a9_vfpv3-d16
+  24.10.5   omap/generic        gcc 13.3.0   musl   arm_cortex-a8_vfpv3
+  24.10.5   at91/sama7          gcc 13.3.0   musl   arm_cortex-a7_vfpv4
+  24.10.5   ipq40xx/generic     gcc 13.3.0   musl   arm_cortex-a7_neon-vfpv4
+  24.10.5   mediatek/mt7629     gcc 13.3.0   musl   arm_cortex-a7
+  24.10.5   ipq806x/generic     gcc 13.3.0   musl   arm_cortex-a15_neon-vfpv4
   24.10.5   armsr/armv8         gcc 13.3.0   musl   aarch64_generic
   24.10.5   mediatek/filogic    gcc 13.3.0   musl   aarch64_cortex-a53
   24.10.5   mvebu/cortexa72     gcc 13.3.0   musl   aarch64_cortex-a72
@@ -37,6 +45,11 @@ Supported OpenWrt SDKs:
   25.12.6   bcm53xx/generic     gcc 14.3.0   musl   arm_cortex-a9
   25.12.6   imx/cortexa9        gcc 14.3.0   musl   arm_cortex-a9_neon
   25.12.6   mvebu/cortexa9      gcc 14.3.0   musl   arm_cortex-a9_vfpv3-d16
+  25.12.6   omap/generic        gcc 14.3.0   musl   arm_cortex-a8_vfpv3
+  25.12.6   at91/sama7          gcc 14.3.0   musl   arm_cortex-a7_vfpv4
+  25.12.6   ipq40xx/generic     gcc 14.3.0   musl   arm_cortex-a7_neon-vfpv4
+  25.12.6   mediatek/mt7629     gcc 14.3.0   musl   arm_cortex-a7
+  25.12.6   ipq806x/generic     gcc 14.3.0   musl   arm_cortex-a15_neon-vfpv4
   25.12.6   armsr/armv8         gcc 14.3.0   musl   aarch64_generic
   25.12.6   mediatek/filogic    gcc 14.3.0   musl   aarch64_cortex-a53
   25.12.6   mvebu/cortexa72     gcc 14.3.0   musl   aarch64_cortex-a72
@@ -53,8 +66,12 @@ bcm27xx/bcm2712, x86_64 with x86/64 and riscv64_generic with
 sifiveu/generic. The remaining package architectures use the SDKs listed
 for their target in the table above (bmips/bcm6328, octeon/generic,
 kirkwood/generic, gemini/generic, bcm53xx/generic, imx/cortexa9 and
-mvebu/cortexa9). All packages use musl, including the two soft-float
-MIPS targets.
+mvebu/cortexa9). arm_cortex-a8_vfpv3 is built with omap/generic,
+arm_cortex-a7_vfpv4 with at91/sama7, arm_cortex-a7_neon-vfpv4 with
+ipq40xx/generic, arm_cortex-a7 with mediatek/mt7629 and
+arm_cortex-a15_neon-vfpv4 with ipq806x/generic. All packages use musl.
+The soft-float targets are mips_mips32, mips64_octeonplus and
+arm_cortex-a7; the other ARMv7 targets are hard-float.
 
 The prebuilt Rust binaries are generic aarch64 and are shared by all four
 aarch64 package architectures; the mipsel Rust binaries are shared by
@@ -115,6 +132,16 @@ The repository contains prebuilt binaries in:
   package/zapret2/files-cortexa9-vfpv3d16/opt/zapret2/zapret2-finder
   package/zapret2/files-cortexa9-neon/usr/bin/zapret2
   package/zapret2/files-cortexa9-neon/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa8-vfpv3/usr/bin/zapret2
+  package/zapret2/files-cortexa8-vfpv3/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa7-vfpv4/usr/bin/zapret2
+  package/zapret2/files-cortexa7-vfpv4/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa7-neon-vfpv4/usr/bin/zapret2
+  package/zapret2/files-cortexa7-neon-vfpv4/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa7/usr/bin/zapret2
+  package/zapret2/files-cortexa7/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa15-neon-vfpv4/usr/bin/zapret2
+  package/zapret2/files-cortexa15-neon-vfpv4/opt/zapret2/zapret2-finder
   package/zapret2/files-mips32-25.12/usr/bin/zapret2
   package/zapret2/files-mips32-25.12/opt/zapret2/zapret2-finder
   package/zapret2/files-mips64-25.12/usr/bin/zapret2
@@ -129,6 +156,16 @@ The repository contains prebuilt binaries in:
   package/zapret2/files-cortexa9-vfpv3d16-25.12/opt/zapret2/zapret2-finder
   package/zapret2/files-cortexa9-neon-25.12/usr/bin/zapret2
   package/zapret2/files-cortexa9-neon-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa8-vfpv3-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa8-vfpv3-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa7-vfpv4-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa7-vfpv4-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa7-neon-vfpv4-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa7-neon-vfpv4-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa7-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa7-25.12/opt/zapret2/zapret2-finder
+  package/zapret2/files-cortexa15-neon-vfpv4-25.12/usr/bin/zapret2
+  package/zapret2/files-cortexa15-neon-vfpv4-25.12/opt/zapret2/zapret2-finder
 
 Build the Rust binaries for mipsel_24kc / 24.10.5:
   SDK=/path/to/openwrt-sdk-24.10.5-ramips-mt76x8_gcc-13.3.0_musl.Linux-x86_64
@@ -250,14 +287,19 @@ architectures (shown for 24.10.5; use the matching 25.12.6 SDK and a
 target-*-25.12 directory for 25.12.6). Select the target and extra flags
 from this table:
 
-  package arch            rust target                        extra flags
-  mips_mips32             mips-unknown-linux-musl            -C target-cpu=mips32 -C target-feature=-mips32r2 -C link-arg=-mips32
-  mips64_octeonplus       mips64-openwrt-linux-musl          -C link-arg=-march=octeon+ -C link-arg=-mabi=64
-  arm_xscale              armv5te-unknown-linux-musleabi     none
-  arm_fa526               armv4t-unknown-linux-musleabi      custom target spec, see below
-  arm_cortex-a9           armv7-unknown-linux-musleabi       none
-  arm_cortex-a9_vfpv3-d16 armv7-unknown-linux-musleabihf     none
-  arm_cortex-a9_neon      armv7-unknown-linux-musleabihf     -C target-feature=+neon
+  package arch              rust target                        extra flags
+  mips_mips32               mips-unknown-linux-musl            -C target-cpu=mips32 -C target-feature=-mips32r2 -C link-arg=-mips32
+  mips64_octeonplus         mips64-openwrt-linux-musl          -C link-arg=-march=octeon+ -C link-arg=-mabi=64
+  arm_xscale                armv5te-unknown-linux-musleabi     none
+  arm_fa526                 armv4t-unknown-linux-musleabi      custom target spec, see below
+  arm_cortex-a9             armv7-unknown-linux-musleabi       none
+  arm_cortex-a9_vfpv3-d16   armv7-unknown-linux-musleabihf     none
+  arm_cortex-a9_neon        armv7-unknown-linux-musleabihf     -C target-feature=+neon
+  arm_cortex-a8_vfpv3       armv7-unknown-linux-musleabihf     -C target-cpu=cortex-a8 -C target-feature=+vfp3,-neon
+  arm_cortex-a7_vfpv4       armv7-unknown-linux-musleabihf     -C target-cpu=cortex-a7 -C target-feature=+vfp4,-neon
+  arm_cortex-a7_neon-vfpv4  armv7-unknown-linux-musleabihf     -C target-cpu=cortex-a7
+  arm_cortex-a7             armv7-unknown-linux-musleabi       none
+  arm_cortex-a15_neon-vfpv4 armv7-unknown-linux-musleabihf     -C target-cpu=cortex-a15
 
 Point CC_<target>, AR_<target> and CARGO_TARGET_<TARGET>_LINKER at the
 cross gcc and ar of the SDK toolchain, for example:
@@ -331,7 +373,9 @@ Usage examples:
 The installer targets OpenWrt 24.10.5 (IPK) and 25.12.6 (APK), and the
 mipsel_24kc, mipsel_74kc, mips_24kc, mips_mips32, mips64_octeonplus,
 arm_xscale, arm_fa526, arm_cortex-a9, arm_cortex-a9_neon,
-arm_cortex-a9_vfpv3-d16, aarch64_generic, aarch64_cortex-a53,
+arm_cortex-a9_vfpv3-d16, arm_cortex-a7, arm_cortex-a7_vfpv4,
+arm_cortex-a7_neon-vfpv4, arm_cortex-a8_vfpv3,
+arm_cortex-a15_neon-vfpv4, aarch64_generic, aarch64_cortex-a53,
 aarch64_cortex-a72, aarch64_cortex-a76 and x86_64 package architectures,
 plus riscv64_generic on 25.12.6 (RISC-V is not
 supported on 24.10.5 because its feeds have no LuaJIT for RISC-V). On
@@ -373,6 +417,16 @@ Release archives
   zapret2-openwrt-1.0.0-r1-arm_cortex-a9_neon-25.12.6-apk.zip
   zapret2-openwrt-1.0.0-r1-arm_cortex-a9_vfpv3-d16-24.10.5.zip
   zapret2-openwrt-1.0.0-r1-arm_cortex-a9_vfpv3-d16-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a7-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a7-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_vfpv4-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_vfpv4-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_neon-vfpv4-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_neon-vfpv4-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a8_vfpv3-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a8_vfpv3-25.12.6-apk.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a15_neon-vfpv4-24.10.5.zip
+  zapret2-openwrt-1.0.0-r1-arm_cortex-a15_neon-vfpv4-25.12.6-apk.zip
 
 The 25.12.6 IPK build is optional and is not part of the release archives.
 

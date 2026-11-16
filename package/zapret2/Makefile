@@ -52,6 +52,16 @@ else ifneq ($(filter mipsel%,$(ARCH) $(ARCH_PACKAGES)),)
   ZAPRET2_RUST_SUFFIX:=
 else ifneq ($(filter mips%,$(ARCH) $(ARCH_PACKAGES)),)
   ZAPRET2_RUST_SUFFIX:=-mips
+else ifneq ($(filter arm_cortex-a15_neon-vfpv4%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa15-neon-vfpv4
+else ifneq ($(filter arm_cortex-a8_vfpv3%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa8-vfpv3
+else ifneq ($(filter arm_cortex-a7_neon-vfpv4%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa7-neon-vfpv4
+else ifneq ($(filter arm_cortex-a7_vfpv4%,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa7-vfpv4
+else ifneq ($(filter arm_cortex-a7,$(ARCH) $(ARCH_PACKAGES)),)
+  ZAPRET2_RUST_SUFFIX:=-cortexa7
 else ifneq ($(filter arm_cortex-a9_vfpv3-d16%,$(ARCH) $(ARCH_PACKAGES)),)
   ZAPRET2_RUST_SUFFIX:=-cortexa9-vfpv3d16
 else ifneq ($(filter arm_cortex-a9_neon%,$(ARCH) $(ARCH_PACKAGES)),)
