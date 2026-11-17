@@ -1,4 +1,4 @@
-zapret2-openwrt 1.0.0-r1
+zapret2-openwrt 1.0.1-r1
 ========================
 
 Packages:
@@ -323,7 +323,14 @@ the r2 features of the default mips-unknown-linux-musl target; readelf -h
 must report "mips32" (not "mips32r2"). mips64 uses the built-in
 mips64-openwrt-linux-musl target, which is already MIPS64r2 and n64 ABI.
 
-Copy the resulting binaries to the matching files* tree.
+Copy the resulting binaries to the matching files* tree. When bumping the
+project version, keep these prebuilt binaries in sync as well: the CLI and
+finder embed VERSION, so `zapret2 --version` must match CURRENT_VERSION in
+the LuCI view. Either rebuild them, or (when the version string keeps the
+same length, e.g. 1.0.0-r1 -> 1.0.1-r1) patch the embedded string in place
+across all files* trees. For 1.0.1-r1 the latter was used: all 66 prebuilt
+binaries were patched in their .rodata. Only the version string changes;
+no Rust code depends on the upstream zapret2 version.
 The package Makefile selects the files* tree automatically from
 ARCH_PACKAGES (the package architecture). The same aarch64 binaries are used for
 aarch64_generic, aarch64_cortex-a53, aarch64_cortex-a72 and
@@ -346,13 +353,25 @@ directory, then build:
   25.12.6, optional IPK:
     make CONFIG_USE_APK= package/zapret2/compile package/luci-app-zapret2/compile
 
-The package Makefile downloads upstream zapret2 v1.0.2 source and builds
+The package Makefile downloads upstream zapret2 v1.0.7 source and builds
 nfqws2 and mdig for the target. Package versioning is independent:
-all packages use project version 1.0.0-r1.
+all packages use project version 1.0.1-r1.
 
 The LuaJIT dependency requires host GCC multilib when building for 32-bit
 targets. If the default host GCC lacks 32-bit libgcc, select a multilib
 compiler explicitly, for example: make HOSTCC=gcc-15 ...
+
+Update check
+------------
+The LuCI main page shows "Доступна новая версия!" when a newer release is
+published. CURRENT_VERSION in main.js is the project version (1.0.1-r1);
+keep it in sync with PKG_VERSION/PKG_RELEASE, the VERSION constants in the
+Rust CLI/finder and the release tag used by the installer. On page load
+LuCI runs /usr/bin/curl through rpcd (granted by the luci-app-zapret2 ACL)
+with connect timeout 3 s and total timeout 6 s, reads tag_name from the
+GitHub releases/latest API and caches the result in sessionStorage for
+6 hours. The check runs asynchronously, so page rendering is never blocked;
+if GitHub is unreachable the banner simply stays hidden.
 
 Installer
 ---------
@@ -368,7 +387,7 @@ Usage examples:
   wget -qO- .../install-zapret2.sh | sh -s -- --start
   wget -qO- .../install-zapret2.sh | sh -s -- --no-luci --yes
   wget -qO- .../install-zapret2.sh | sh -s -- --lang-ru
-  sh install-zapret2.sh 1.0.0-r1 --dry-run
+  sh install-zapret2.sh 1.0.1-r1 --dry-run
 
 The installer targets OpenWrt 24.10.5 (IPK) and 25.12.6 (APK), and the
 mipsel_24kc, mipsel_74kc, mips_24kc, mips_mips32, mips64_octeonplus,
@@ -386,47 +405,47 @@ sysupgrade images.
 
 Release archives
 ----------------
-  zapret2-openwrt-1.0.0-r1-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-mips_24kc-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-mips_24kc-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a53-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a53-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a72-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a72-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a76-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_cortex-a76-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_generic-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-aarch64_generic-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-mipsel_74kc-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-mipsel_74kc-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-x86_64-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-x86_64-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-riscv64_generic-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-mips_mips32-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-mips_mips32-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-mips64_octeonplus-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-mips64_octeonplus-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_xscale-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_xscale-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_fa526-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_fa526-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a9-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a9-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_neon-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_neon-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_vfpv3-d16-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a9_vfpv3-d16-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a7-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a7-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_vfpv4-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_vfpv4-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_neon-vfpv4-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a7_neon-vfpv4-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a8_vfpv3-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a8_vfpv3-25.12.6-apk.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a15_neon-vfpv4-24.10.5.zip
-  zapret2-openwrt-1.0.0-r1-arm_cortex-a15_neon-vfpv4-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-mips_24kc-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-mips_24kc-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_cortex-a53-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_cortex-a53-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_cortex-a72-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_cortex-a72-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_cortex-a76-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_cortex-a76-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_generic-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-aarch64_generic-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-mipsel_74kc-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-mipsel_74kc-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-x86_64-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-x86_64-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-riscv64_generic-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-mips_mips32-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-mips_mips32-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-mips64_octeonplus-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-mips64_octeonplus-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_xscale-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_xscale-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_fa526-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_fa526-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a9-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a9-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a9_neon-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a9_neon-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a9_vfpv3-d16-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a9_vfpv3-d16-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a7-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a7-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a7_vfpv4-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a7_vfpv4-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a7_neon-vfpv4-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a7_neon-vfpv4-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a8_vfpv3-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a8_vfpv3-25.12.6-apk.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a15_neon-vfpv4-24.10.5.zip
+  zapret2-openwrt-1.0.1-r1-arm_cortex-a15_neon-vfpv4-25.12.6-apk.zip
 
 The 25.12.6 IPK build is optional and is not part of the release archives.
 
@@ -438,14 +457,14 @@ the same name. To install packages manually with signature verification,
 copy it to /etc/apk/keys/ on the router:
 
   wget -O /etc/apk/keys/zapret2-apk-key.pem \
-    https://github.com/alex0310/zapret2-openwrt/releases/download/v1.0.0-r1/zapret2-apk-key.pem
+    https://github.com/alex0310/zapret2-openwrt/releases/download/v1.0.1-r1/zapret2-apk-key.pem
 
 OpenWrt SDKs produce unsigned APK files (only feed indexes are signed),
 so release packages are re-signed after the build:
 
   apk adbsign --allow-untrusted --keys-dir <dir-with-public-key> \
-    --sign-key private-key.pem zapret2-1.0.0-r1.apk
-  apk verify --keys-dir <dir-with-public-key> zapret2-1.0.0-r1.apk
+    --sign-key private-key.pem zapret2-1.0.1-r1.apk
+  apk verify --keys-dir <dir-with-public-key> zapret2-1.0.1-r1.apk
 
 The private key is not part of this repository. install-zapret2.sh
 installs the public key automatically and then runs apk without

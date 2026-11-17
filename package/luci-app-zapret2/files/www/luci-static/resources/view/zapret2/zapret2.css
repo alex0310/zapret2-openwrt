@@ -3,6 +3,34 @@
  * Modal window sizes
  */
 
+/* Update notification on the main page */
+.zapret2-update-banner {
+    display: none;
+    margin: 0 0 1em 0;
+    padding: 10px 14px;
+    border: 1px solid #e0b400;
+    border-left: 4px solid #e0b400;
+    border-radius: 3px;
+    background: #fff8e1;
+    color: #5c4300;
+    font-weight: bold;
+}
+
+.zapret2-update-banner.visible {
+    display: block;
+}
+
+.zapret2-update-banner a {
+    color: #8a5a00;
+    text-decoration: underline;
+}
+
+.zapret2-update-versions {
+    font-weight: normal;
+    opacity: 0.8;
+    margin-left: 0.4em;
+}
+
 /* ui.showModal windows */
 .modal {
     width: 90%;

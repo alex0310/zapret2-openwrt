@@ -42,7 +42,8 @@
 				"/bin/sh": [ "exec" ],
 				"/bin/grep": [ "exec" ],
 				"/bin/mkdir": [ "exec" ],
-				"/usr/bin/wc": [ "exec" ]
+				"/usr/bin/wc": [ "exec" ],
+				"/usr/bin/curl": [ "exec" ]
 			}
 		},
 		"write": {

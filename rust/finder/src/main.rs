@@ -24,7 +24,7 @@ const STOP_FILE: &str = "/tmp/zapret2-finder.stop";
 const DEFAULT_BASE: &str = "/opt/zapret2";
 const MARK: u32 = 0x4000_0000;
 const QNUM: u32 = 65300;
-const VERSION: &str = "1.0.0-r1";
+const VERSION: &str = "1.0.1-r1";
 
 static INTERRUPTED: AtomicBool = AtomicBool::new(false);
 

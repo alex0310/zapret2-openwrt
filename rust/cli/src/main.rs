@@ -15,7 +15,7 @@ use std::os::unix::io::AsRawFd;
 use std::path::Path;
 use std::process::{exit, Command, Stdio};
 
-const VERSION: &str = "1.0.0-r1";
+const VERSION: &str = "1.0.1-r1";
 const ZAPRET_BASE: &str = "/opt/zapret2";
 const UCI2CONFIG: &str = "/opt/zapret2/init.d/openwrt/uci2config";
 const INIT_SCRIPT: &str = "/opt/zapret2/init.d/openwrt/zapret2";

@@ -34,9 +34,12 @@ DVTWS2=${DVTWS2:-${ZAPRET_BASE}/nfq2/dvtws2}
 WINWS2=${WINWS2:-${ZAPRET_BASE}/nfq2/winws2}
 MDIG=${MDIG:-${ZAPRET_BASE}/mdig/mdig}
 DESYNC_MARK=0x10000000
+PACE=${PACE:-0}
 CURL_MAX_TIME=${CURL_MAX_TIME:-2}
 CURL_MAX_TIME_QUIC=${CURL_MAX_TIME_QUIC:-$CURL_MAX_TIME}
 CURL_MAX_TIME_DOH=${CURL_MAX_TIME_DOH:-2}
+CURL_PAD=${CURL_PAD:-0}
+PAD_MAX_HEADER=${PAD_MAX_HEADER:-4000}
 USER_AGENT=${USER_AGENT:-Mozilla}
 HTTP_PORT=${HTTP_PORT:-80}
 HTTPS_PORT=${HTTPS_PORT:-443}
@@ -49,13 +52,19 @@ IPFW_RULE_NUM=${IPFW_RULE_NUM:-$(($$ % $IPFW_RULE_MAX + 1))}
 IPFW_DIVERT_PORT=${IPFW_DIVERT_PORT:-$(($$ % 64536 + 1000))}
 QNUM=${QNUM:-$(($$ % 64536 + 1000))}
 
-IPSET_FILE=/tmp/blockcheck_ipset_$$.txt
-PARALLEL_OUT=/tmp/zapret_parallel_$$
-HDRTEMP=/tmp/zapret-hdr-$$
-NFT_TABLE=blockcheck$$
-IPT_OUT_CHAIN=blockcheck_output_$$
-IPT_IN_CHAIN=blockcheck_input_$$
-IPT_COMMENT="-m comment --comment blockcheck_$$"
+PARALLEL_OUT_TEMPLATE=/tmp/zapret2_parallel_
+PARALLEL_OUT=$PARALLEL_OUT_TEMPLATE$$
+HDRTEMP_TEMPLATE=/tmp/zapret2-hdr-
+HDRTEMP=$HDRTEMP_TEMPLATE$$
+CURL_PAD_FILE_TEMPLATE=/tmp/zapret2-curlpad-
+
+NFT_TABLE_TEMPLATE=blockcheck2-
+NFT_TABLE=$NFT_TABLE_TEMPLATE$$
+IPT_OUT_CHAIN_TEMPLATE=blockcheck2_output_
+IPT_OUT_CHAIN=$IPT_OUT_CHAIN_TEMPLATE$$
+IPT_IN_CHAIN_TEMPLATE=blockcheck2_input_
+IPT_IN_CHAIN=$IPT_IN_CHAIN_TEMPLATE$$
+IPT_COMMENT="-m comment --comment blockcheck2_$$"
 
 DNSCHECK_DNS=${DNSCHECK_DNS:-8.8.8.8 1.1.1.1 77.88.8.1}
 DNSCHECK_DOM=${DNSCHECK_DOM:-pornhub.com ej.ru rutracker.org www.torproject.org bbc.com}
@@ -64,17 +73,67 @@ DNSCHECK_DIG1=/tmp/dig1.txt
 DNSCHECK_DIG2=/tmp/dig2.txt
 DNSCHECK_DIGS=/tmp/digs.txt
 
+GUARD_TIMER="timer_set('exit_guard',function(name,data) io.stderr:write('exit_guard\n'); os.exit(3000); end,20000,true)"
 
 unset PF_STATUS
-PF_RULES_SAVE=/tmp/pf-zapret-save.conf
+PF_RULES_SAVE=/tmp/pf-zapret2-save.conf
 
 unset ALL_PROXY
+
+apply_header_padfile()
+{
+	local n=1 left size f pid
+
+	# A normal exit already removes this run's own pad file (see
+	# cleanup() below), which covers Ctrl+C, a closed terminal, and
+	# a plain kill. kill -9 and crashes bypass that, as they would
+	# for any script's cleanup, so sweep any such leftover from
+	# a previous run before making this run's own - only once its PID
+	# is confirmed no longer running, so a genuinely still-running
+	# concurrent instance (different PID, its own file) is never
+	# touched
+	for f in $CURL_PAD_FILE_TEMPLATE*; do
+		[ -e "$f" ] || continue
+		pid=${f##*-}
+		case "$pid" in ''|*[!0-9]*) continue ;; esac
+		kill -0 "$pid" 2>/dev/null || rm -f "$f"
+	done
+
+	if [ "$CURL_PAD" -gt 0 ] 2>/dev/null; then
+		left=$CURL_PAD
+		CURL_PAD_FILE=$CURL_PAD_FILE_TEMPLATE$$
+		rm -f "$CURL_PAD_FILE"
+		touch "$CURL_PAD_FILE"
+		while [ "$left" -ge 14 ]; do
+			left=$(($left-14))
+			if [ "$left" -gt "$PAD_MAX_HEADER" ]; then
+				size="$PAD_MAX_HEADER"
+			else
+				size=$left
+			fi
+			left=$(($left-$size))
+			# if the next header would be too small add the remainder to the current header
+			[ "$left" -lt 14 ] && size=$(($size+$left))
+
+			printf 'X-Pad-%04d: ' $n >> "$CURL_PAD_FILE"
+			printf "%${size}s" | tr ' ' 'A' >> "$CURL_PAD_FILE"
+			# curl internally adds 0D0A line ending even if it's 0A in the file
+			echo >> "$CURL_PAD_FILE"
+			n=$(($n+1))
+		done
+		CURL_OPT="${CURL_OPT}${CURL_OPT:+ }-H @$CURL_PAD_FILE"
+	fi
+}
+
 
 killwait()
 {
 	# $1 - signal (-9, -2, ...)
 	# $2 - pid
-	kill $1 $2
+	local KILL=kill
+	# avoid internal bash kill in cygwin to support -f
+	[ "$UNAME" = "CYGWIN" ] && KILL=/bin/kill
+	$KILL $1 $2
 	# suppress job kill message
 	wait $2 2>/dev/null
 }
@@ -161,6 +220,7 @@ cleanup()
 		    pf_clean
 		    ;;
 	esac
+	[ -n "$CURL_PAD_FILE" ] && rm -f "$CURL_PAD_FILE"
 }
 
 IPT()
@@ -634,8 +694,13 @@ curl_with_subst_ip()
 	local connect_to="--connect-to $1::$ip${2:+:$2}" arg
 	shift ; shift ; shift;
 	[ "$CURL_VERBOSE" = 1 ] && arg="-v"
-	[ "$CURL_CMD" = 1 ] && echo $CURL ${arg:+$arg }$connect_to "$@"
-	ALL_PROXY="$ALL_PROXY" "$CURL" ${arg:+$arg }$connect_to "$@"
+	[ "$CURL_CMD" = 1 ] && echo $CURL -w "%{time_total}" ${arg:+$arg }$connect_to "$@"
+	local tooks
+	tooks=$(ALL_PROXY="$ALL_PROXY" "$CURL" -w "%{time_total}" ${arg:+$arg }$connect_to "$@")
+	local ret=$?
+	local tookms=$(awk "BEGIN {print int($tooks * 1000)}")
+	[ "$PACE" -gt "$tookms" ] && msleep $(($PACE - $tookms))
+	return "$ret"
 }
 curl_with_dig()
 {
@@ -819,7 +884,7 @@ pktws_ipt_prepare()
 	# $2 - port
 	# $3 - ip list
 
-	local ip
+	local ip v=
 
 	case "$FWTYPE" in
 		iptables)
@@ -839,10 +904,12 @@ pktws_ipt_prepare()
 			opf_prepare_dvtws $1 $2 "$3"
 			;;
 		windivert)
+			[ "$IPV" = 6 ] && v="v6"
 			WF="--wf-l3=ipv${IPV} --wf-${1}-out=$2"
-			rm -f "$IPSET_FILE"
+			WFRAWF=
 			for ip in $3; do
-				echo $ip >>"$IPSET_FILE"
+				[ -n "$WFRAWF" ] && WFRAWF="$WFRAWF or "
+				WFRAWF="${WFRAWF}ip${v}.DstAddr=$ip or ip${v}.SrcAddr=$ip"
 			done
 			;;
 
@@ -871,8 +938,7 @@ pktws_ipt_unprepare()
 			pf_restore
 			;;
 		windivert)
-			unset WF
-			rm -f "$IPSET_FILE"
+			unset WF WFRAWF
 			;;
 	esac
 }
@@ -940,29 +1006,71 @@ pktws_ipt_unprepare_udp()
 	pktws_ipt_unprepare udp $1
 }
 
+pktws_ipt_sweep()
+{
+	# remove leftovers after hard kill/crash
+
+	local f pid IPTABLES
+	case "$FWTYPE" in
+		nftables)
+			nft list tables | grep '^table inet blockcheck2-' | while IFS= read -r f; do
+				pid=${f##*-}
+				case "$pid" in ''|*[!0-9]*) continue ;; esac
+				kill -0 "$pid" 2>/dev/null || nft delete $f
+			done
+			;;
+		iptables)
+			for IPTABLES in iptables ip6tables; do
+				$IPTABLES -t mangle -S | grep -o -e "INPUT -j $IPT_IN_CHAIN_TEMPLATE[0-9]\+" -e "OUTPUT -j $IPT_OUT_CHAIN_TEMPLATE[0-9]\+" | while IFD= read -r f; do
+					pid=${f##*_}
+					case "$pid" in ''|*[!0-9]*) continue ;; esac
+					kill -0 "$pid" 2>/dev/null || $IPTABLES -t mangle -D $f
+				done
+				$IPTABLES -t mangle -S | grep -o -e "$IPT_IN_CHAIN_TEMPLATE[0-9]\+" -e "$IPT_OUT_CHAIN_TEMPLATE[0-9]\+" | sort -u | while IFD= read -r f; do
+					pid=${f##*_}
+					case "$pid" in ''|*[!0-9]*) continue ;; esac
+					kill -0 "$pid" 2>/dev/null || {
+						$IPTABLES -t mangle -F $f
+						$IPTABLES -t mangle -X $f
+					}
+				done
+			done
+			;;
+	esac
+}
+
 pktws_start()
 {
 	case "$UNAME" in
 		Linux)
-			"$NFQWS2" --uid $WS_UID:$WS_GID --fwmark=$DESYNC_MARK --qnum=$QNUM --lua-init=@"$ZAPRET_BASE/lua/zapret-lib.lua" --lua-init=@"$ZAPRET_BASE/lua/zapret-antidpi.lua" "$@" >/dev/null &
+			"$NFQWS2" --uid $WS_UID:$WS_GID --fwmark=$DESYNC_MARK --qnum=$QNUM --lua-init="$GUARD_TIMER" --lua-init=@"$ZAPRET_BASE/lua/zapret-lib.lua" --lua-init=@"$ZAPRET_BASE/lua/zapret-antidpi.lua" "$@" >/dev/null &
 			;;
 		FreeBSD|OpenBSD)
-			"$DVTWS2" --port=$IPFW_DIVERT_PORT --lua-init=@"$ZAPRET_BASE/lua/zapret-lib.lua" --lua-init=@"$ZAPRET_BASE/lua/zapret-antidpi.lua" "$@" >/dev/null &
+			"$DVTWS2" --port=$IPFW_DIVERT_PORT --lua-init="$GUARD_TIMER" --lua-init=@"$ZAPRET_BASE/lua/zapret-lib.lua" --lua-init=@"$ZAPRET_BASE/lua/zapret-antidpi.lua" "$@" >/dev/null &
 			;;
 		CYGWIN)
-			# allow multiple PKTWS instances with the same wf filter but different ipset
 			# some methods require empty acks
-			"$WINWS2" --wf-dup-check=0 --wf-tcp-empty=1 $WF --ipset="$IPSET_FILE" --lua-init=@"$ZAPRET_BASE/lua/zapret-lib.lua" --lua-init=@"$ZAPRET_BASE/lua/zapret-antidpi.lua" "$@" >/dev/null &
+			# use raw filter to filter target ip addresses in-kernel to allow multiple blockchecks running at the same time
+			# use guard timer to kill unmanaged pktws instances
+			# use high windivert priority in case they did not stop another winws2 instance
+			"$WINWS2" --wf-priority=2000 --wf-tcp-empty=1 $WF --wf-raw-filter="$WFRAWF" \
+				--lua-init="$GUARD_TIMER" \
+				--lua-init=@"$ZAPRET_BASE/lua/zapret-lib.lua" --lua-init=@"$ZAPRET_BASE/lua/zapret-antidpi.lua" "$@" >/dev/null &
 			;;
 	esac
 	PID=$!
 	# give some time to initialize
 	minsleep
 }
+
 ws_kill()
 {
+	local sig
 	[ -z "$PID" ] || {
-		killwait -9 $PID 2>/dev/null
+		sig=-9
+		# use fast kill using TerminateProcess() in cygwin
+		[ "$UNAME" = "CYGWIN" ] && sig=-f
+		killwait $sig $PID 2>/dev/null
 		PID=
 	}
 }
@@ -1026,7 +1134,7 @@ curl_test()
 				[ $REPEATS -gt 1 ] && echo 'AVAILABLE'
 			else
 				code=$?
-				[ "$SCANLEVEL" = quick ] && break
+				[ "$SCANLEVEL" = quick -o "$SCANLEVEL" = veryquick ] && break
 			fi
 		done
 	fi
@@ -1089,7 +1197,7 @@ pktws_curl_test()
 }
 strategy_append_extra_pktws()
 {
-	strategy="${strategy:+${PKTWS_EXTRA_PRE:+$PKTWS_EXTRA_PRE }${PKTWS_EXTRA_PRE_1:+"$PKTWS_EXTRA_PRE_1" }${PKTWS_EXTRA_PRE_2:+"$PKTWS_EXTRA_PRE_2" }${PKTWS_EXTRA_PRE_3:+"$PKTWS_EXTRA_PRE_3" }${PKTWS_EXTRA_PRE_4:+"$PKTWS_EXTRA_PRE_4" }${PKTWS_EXTRA_PRE_5:+"$PKTWS_EXTRA_PRE_5" }${PKTWS_EXTRA_PRE_6:+"$PKTWS_EXTRA_PRE_6" }${PKTWS_EXTRA_PRE_7:+"$PKTWS_EXTRA_PRE_7" }${PKTWS_EXTRA_PRE_8:+"$PKTWS_EXTRA_PRE_8" }${PKTWS_EXTRA_PRE_9:+"$PKTWS_EXTRA_PRE_9" }$strategy${PKTWS_EXTRA_POST:+ $PKTWS_EXTRA_POST}${PKTWS_EXTRA_1:+ "$PKTWS_EXTRA_POST_1"}${PKTWS_EXTRA_POST_2:+ "$PKTWS_EXTRA_POST_2"}${PKTWS_EXTRA_POST_3:+ "$PKTWS_EXTRA_POST_3"}${PKTWS_EXTRA_POST_4:+ "$PKTWS_EXTRA_POST_4"}${PKTWS_EXTRA_POST_5:+ "$PKTWS_EXTRA_POST_5"}${PKTWS_EXTRA_POST_6:+ "$PKTWS_EXTRA_POST_6"}${PKTWS_EXTRA_POST_7:+ "$PKTWS_EXTRA_POST_7"}${PKTWS_EXTRA_POST_8:+ "$PKTWS_EXTRA_POST_8"}${PKTWS_EXTRA_POST_9:+ "$PKTWS_EXTRA_POST_9"}}"
+	strategy="${strategy:+${PKTWS_EXTRA_PRE:+$PKTWS_EXTRA_PRE }${PKTWS_EXTRA_PRE_1:+"$PKTWS_EXTRA_PRE_1" }${PKTWS_EXTRA_PRE_2:+"$PKTWS_EXTRA_PRE_2" }${PKTWS_EXTRA_PRE_3:+"$PKTWS_EXTRA_PRE_3" }${PKTWS_EXTRA_PRE_4:+"$PKTWS_EXTRA_PRE_4" }${PKTWS_EXTRA_PRE_5:+"$PKTWS_EXTRA_PRE_5" }${PKTWS_EXTRA_PRE_6:+"$PKTWS_EXTRA_PRE_6" }${PKTWS_EXTRA_PRE_7:+"$PKTWS_EXTRA_PRE_7" }${PKTWS_EXTRA_PRE_8:+"$PKTWS_EXTRA_PRE_8" }${PKTWS_EXTRA_PRE_9:+"$PKTWS_EXTRA_PRE_9" }$strategy${PKTWS_EXTRA_POST:+ $PKTWS_EXTRA_POST}${PKTWS_EXTRA_POST_1:+ "$PKTWS_EXTRA_POST_1"}${PKTWS_EXTRA_POST_2:+ "$PKTWS_EXTRA_POST_2"}${PKTWS_EXTRA_POST_3:+ "$PKTWS_EXTRA_POST_3"}${PKTWS_EXTRA_POST_4:+ "$PKTWS_EXTRA_POST_4"}${PKTWS_EXTRA_POST_5:+ "$PKTWS_EXTRA_POST_5"}${PKTWS_EXTRA_POST_6:+ "$PKTWS_EXTRA_POST_6"}${PKTWS_EXTRA_POST_7:+ "$PKTWS_EXTRA_POST_7"}${PKTWS_EXTRA_POST_8:+ "$PKTWS_EXTRA_POST_8"}${PKTWS_EXTRA_POST_9:+ "$PKTWS_EXTRA_POST_9"}}"
 }
 
 
@@ -1170,6 +1278,29 @@ result_intersection_print()
 			echo "$val"
 		}
 		n=$(($n + 1))
+	done
+}
+result_coverage_print()
+{
+	# Lists every distinct successful strategy together with how many of the
+	# DOMAINS_COUNT domains/targets it worked for, most-covered first.
+	# Unlike result_intersection_print, a strategy doesn't need 100% coverage
+	# to be listed here - useful when DOMAINS is a set of largely independent
+	# targets (e.g. one IP per ASN/provider) where no single strategy is
+	# expected to satisfy every one of them, and the question is which
+	# strategy gets closest.
+	local n=0 hash hashvar hashcountvar ct val
+	while : ; do
+		eval hash=\"\$RES_$n\"
+		[ -n "$hash" ] || break
+		hashvar=RESHASH_${hash}
+		hashcountvar=${hashvar}_COUNTER
+		eval ct=\"\$$hashcountvar\"
+		eval val=\"\$$hashvar\"
+		printf '%s %s\n' "$ct" "$val"
+		n=$(($n + 1))
+	done | sort -rn | while IFS=' ' read -r ct rest; do
+		echo "$ct/$DOMAINS_COUNT : $rest"
 	done
 }
 report_strategy()
@@ -1576,10 +1707,12 @@ ask_params()
 				echo "TLS 1.3 only strategy is better than nothing."
 				ask_yes_no_var ENABLE_HTTPS_TLS13 "check https tls 1.3"
 			}
-		else
-			echo
-			echo "installed curl version does not support TLS 1.3 . tests disabled."
 		fi
+	}
+	[ "$ENABLE_HTTPS_TLS13" = 1 -a -z "$TLS13" ] && {
+			echo
+			echo "WARNING ! installed curl version does not support TLS 1.3 . tests disabled."
+			ENABLE_HTTPS_TLS13=0
 	}
 
 	[ -n "$ENABLE_HTTP3" ] || {
@@ -1591,10 +1724,12 @@ ask_params()
 				echo "make sure target domain(s) support QUIC or result will be negative in any case"
 				ask_yes_no_var ENABLE_HTTP3 "check http3 QUIC"
 			}
-		else
-			echo
-			echo "installed curl version does not support http3 QUIC. tests disabled."
 		fi
+	}
+	[ "$ENABLE_HTTP3" = 1 -a -z "$HTTP3" ] && {
+			echo
+			echo "WARNING ! installed curl version does not support http3 QUIC. tests disabled."
+			ENABLE_HTTP3=0
 	}
 
 	[ -n "$REPEATS" ] || {
@@ -1624,10 +1759,11 @@ ask_params()
 		SCANLEVEL=standard
 		[ "$BATCH" = 1 ] || {
 			echo
-			echo quick    - in multi-attempt mode skip further attempts after first failure
-			echo standard - do investigation what works on your DPI
-			echo force    - scan maximum despite of result
-			ask_list SCANLEVEL "quick standard force" "$SCANLEVEL"
+			echo veryquick - same as quick, and also stop testing more variations of a strategy family once one already succeeds
+			echo quick     - in multi-attempt mode skip further attempts after first failure
+			echo standard  - do investigation what works on your DPI
+			echo force     - scan maximum despite of result
+			ask_list SCANLEVEL "veryquick quick standard force" "$SCANLEVEL"
 		}
 	}
 
@@ -1826,6 +1962,49 @@ check_dns()
 	return $r
 }
 
+
+sweep_stale_pidfiles()
+{
+	# $1 - fixed filename prefix immediately preceding the pid
+	#
+	# A normal exit already removes this run's own PARALLEL_OUT/HDRTEMP
+	# files (unprepare_all(), further down), which covers Ctrl+C,
+	# a closed terminal, and a plain kill. kill -9 and crashes bypass
+	# that, as they would for any script's cleanup, and can leave
+	# stale files behind indefinitely, since nothing about a later run
+	# gives it any reason to know about a different PID's leftovers.
+	# Removes a matching file only once its PID (the run that created
+	# it) is confirmed no longer running, so a genuinely still-running
+	# concurrent instance - a different PID, its own files - is never
+	# touched.
+	local f pid prefix="$1"
+	for f in "$prefix"*; do
+		[ -e "$f" ] || continue
+		pid=${f#"$prefix"}
+		pid=${pid%%[!0-9]*}
+		[ -n "$pid" ] || continue
+		kill -0 "$pid" 2>/dev/null || rm -f "$f"
+	done
+}
+
+sweep_leftovers()
+{
+	sweep_stale_pidfiles $PARALLEL_OUT_TEMPLATE
+	sweep_stale_pidfiles $HDRTEMP_TEMPLATE
+	pktws_ipt_sweep
+}
+
+
+block_signals()
+{
+	# prevent signal function reenter
+	trap '' QUIT TERM HUP PIPE INT
+}
+untrap()
+{
+	trap - QUIT TERM HUP PIPE INT
+}
+
 unprepare_all()
 {
 	# make sure we are not in a middle state that impacts connectivity
@@ -1841,18 +2020,23 @@ unprepare_all()
 }
 sigint()
 {
+	block_signals
 	echo
 	echo terminating...
 	unprepare_all
+	# exitp can wait for the user input. restore default signal behavior without trap
+	untrap
 	exitp 1
 }
 sigint_cleanup()
 {
+	block_signals
 	cleanup
 	exit 1
 }
 sigsilent()
 {
+	block_signals
 	# must not write anything here to stdout
 	unprepare_all
 	exit 1
@@ -1863,19 +2047,20 @@ fix_sbin_path
 check_system
 check_already
 [ "$UNAME" != CYGWIN  -a "$SKIP_PKTWS" != 1 ] && require_root
+sweep_leftovers
 check_prerequisites
 trap sigint_cleanup INT
 check_dns
 check_virt
 ask_params
+apply_header_padfile
 trap - INT
 
 PID=
 NREPORT=
 unset WF
 trap sigint INT
-trap sigsilent PIPE
-trap sigsilent HUP
+trap sigsilent PIPE HUP TERM QUIT
 for dom in $DOMAINS; do
 	for IPV in $IPVS; do
 		configure_ip_version
@@ -1889,9 +2074,7 @@ for dom in $DOMAINS; do
 		[ "$ENABLE_HTTP3" = 1 ] && check_domain_http3 $dom
 	done
 done
-trap - HUP
-trap - PIPE
-trap - INT
+untrap
 
 cleanup
 
@@ -1903,10 +2086,13 @@ report_print
 	echo \* COMMON
 	result_intersection_print
 	echo
+	echo \* COVERAGE
+	result_coverage_print
+	echo
 	[ "$SCANLEVEL" = force ] || {
 		echo "blockcheck optimizes test sequence. To save time some strategies can be skipped if their test is considered useless."
-		echo "That's why COMMON intersection can miss strategies that would work for all domains."
-		echo "Use \"force\" scan level to test all strategies and generate trustable intersection."
+		echo "That's why COMMON intersection can miss strategies that would work for all domains, and COVERAGE counts can undercount."
+		echo "Use \"force\" scan level to test all strategies and generate trustable results."
 		echo "Current scan level was \"$SCANLEVEL\"".
 	}
 }

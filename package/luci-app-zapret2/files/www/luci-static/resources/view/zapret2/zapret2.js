@@ -34,6 +34,26 @@ function render(data) {
 	var luaFiles = data[4];
 	var version = data[5];
 	main.injectStyles();
+	var updateBanner = E('div', {
+		'class': 'zapret2-update-banner',
+		'id': 'zapret2-update-banner'
+	});
+	/* Run the check without blocking page rendering. */
+	main.checkUpdate().then(function(latest) {
+		var current = version || main.CURRENT_VERSION;
+		if (!latest || main.compareVersions(latest, current) <= 0) return;
+		updateBanner.appendChild(E('a', {
+			'href': main.RELEASES_URL,
+			'target': '_blank',
+			'rel': 'noopener noreferrer'
+		}, [
+			_('Доступна новая версия!'),
+			' ',
+			E('span', { 'class': 'zapret2-update-versions' },
+				current + ' \u2192 ' + latest)
+		]));
+		updateBanner.classList.add('visible');
+	});
 	return main.syncFilesWithUCI(listFiles, blobFiles, luaFiles).then(function() {
 		var description = _('DPI bypass tool with Lua scripting support.');
 		if (version) {
@@ -68,6 +88,7 @@ function render(data) {
 				});
 			}
 			return E('div', {}, [
+				updateBanner,
 				E('h2', {}, _('Zapret2')),
 				E('div', { class: 'cbi-map-descr' }, description),
 				servicePanel,

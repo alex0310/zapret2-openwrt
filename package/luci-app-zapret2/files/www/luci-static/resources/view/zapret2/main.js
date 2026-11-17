@@ -7,6 +7,26 @@ var LISTS_DIR = '/opt/zapret2/ipset';
 var BLOBS_DIR = '/opt/zapret2/files/fake';
 var LUA_DIR = '/opt/zapret2/lua';
 var LUA_BASE_SCRIPTS = ['zapret-lib.lua', 'zapret-antidpi.lua', 'zapret-auto.lua'];
+var CURRENT_VERSION = '1.0.1-r1';
+var RELEASES_API = 'https://api.github.com/repos/alex0310/zapret2-openwrt/releases/latest';
+var RELEASES_URL = 'https://github.com/alex0310/zapret2-openwrt/releases';
+var UPDATE_CACHE_KEY = 'zapret2-update-check';
+var UPDATE_TTL = 6 * 60 * 60 * 1000;
+function versionParts(v) {
+	return String(v || '').replace(/^[vV]/, '').split(/[.\-_+]/).map(function(p) {
+		return /^\d+$/.test(p) ? parseInt(p, 10) : p.toLowerCase();
+	});
+}
+function compareVersions(a, b) {
+	var x = versionParts(a), y = versionParts(b), n = Math.max(x.length, y.length);
+	for (var i = 0; i < n; i++) {
+		var p = i < x.length ? x[i] : 0, q = i < y.length ? y[i] : 0;
+		if (p === q) continue;
+		if (typeof p === 'number' && typeof q === 'number') return p > q ? 1 : -1;
+		return String(p) > String(q) ? 1 : -1;
+	}
+	return 0;
+}
 var callInitAction = rpc.declare({
 	object: 'luci',
 	method: 'setInitAction',
@@ -73,9 +93,38 @@ return baseclass.extend({
 	loadLuaFiles: function() {
 		return L.resolveDefault(fs.list(LUA_DIR), []);
 	},
+	CURRENT_VERSION: CURRENT_VERSION,
+	RELEASES_URL: RELEASES_URL,
+	compareVersions: compareVersions,
 	loadVersion: function() {
-		var v = '1.0.0-r1';
-		return Promise.resolve(v.indexOf('ZAPRET2_VERSION') !== -1 ? '' : v);
+		return Promise.resolve(CURRENT_VERSION);
+	},
+	checkUpdate: function() {
+		var cached = null;
+		try {
+			cached = JSON.parse(sessionStorage.getItem(UPDATE_CACHE_KEY) || 'null');
+		} catch (e) {
+			cached = null;
+		}
+		if (cached && typeof cached.latest === 'string' && (Date.now() - cached.ts) < UPDATE_TTL) {
+			return Promise.resolve(cached.latest);
+		}
+		return L.resolveDefault(fs.exec('/usr/bin/curl', [
+			'-fsSL', '--connect-timeout', '3', '--max-time', '6',
+			'-H', 'Accept: application/vnd.github+json', RELEASES_API
+		]), { stdout: '' }).then(function(res) {
+			var out = (res && res.stdout) || '';
+			var m = out.match(/"tag_name"\s*:\s*"([^"]+)"/);
+			var latest = m ? m[1].replace(/^[vV]/, '') : '';
+			try {
+				sessionStorage.setItem(UPDATE_CACHE_KEY, JSON.stringify({
+					latest: latest, ts: Date.now()
+				}));
+			} catch (e) {}
+			return latest;
+		}).catch(function() {
+			return '';
+		});
 	},
 	syncListsWithUCI: function(files) {
 		var existingLists = uci.sections('zapret2', 'list') || [];

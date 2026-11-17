@@ -212,7 +212,9 @@ return baseclass.extend({
 									'rows': '20',
 									'style': 'width: 100%; font-family: monospace;',
 									'placeholder': _('Enter one domain or IP per line')
-								}, content || '')
+								}, content || ''),
+								E('div', { 'class': 'cbi-value-description' },
+									_('Domain lists support ! prefixes (e.g. !example.com) to exempt a host from matching. Do not use ! in lists that are resolved into IP sets.'))
 							])
 						])
 					]),

@@ -536,8 +536,7 @@ function test_dissect()
 					{ kind = 1 },
 					{ kind = 0xE0, data = brandom(math.random(1,10)) },
 					{ kind = 1 },
-					{ kind = 0xE1, data = brandom(math.random(1,10)) },
-					{ kind = 0 }
+					{ kind = 0xE1, data = brandom(math.random(1,10)) }
 				}
 			},
 			payload = brandom(math.random(0, 20))
@@ -704,8 +703,7 @@ function test_csum()
 			{ kind = 1 },
 			{ kind = 0xE0, data = brandom(math.random(1,10)) },
 			{ kind = 1 },
-			{ kind = 0xE1, data = brandom(math.random(1,10)) },
-			{ kind = 0 }
+			{ kind = 0xE1, data = brandom(math.random(1,10)) }
 		}
 	}
 	tcpb = reconstruct_tcphdr(tcp)
@@ -721,9 +719,8 @@ function test_csum()
 		bu8(tcp.options[1].kind)..
 		bu8(tcp.options[2].kind)..bu8(2 + #tcp.options[2].data)..tcp.options[2].data ..
 		bu8(tcp.options[3].kind)..
-		bu8(tcp.options[4].kind)..bu8(2 + #tcp.options[4].data)..tcp.options[4].data ..
-		bu8(tcp.options[5].kind)
-	raw = raw .. string.rep(bu8(TCP_KIND_NOOP), bitand(4-bitand(#raw,3),3))
+		bu8(tcp.options[4].kind)..bu8(2 + #tcp.options[4].data)..tcp.options[4].data
+	raw = raw .. string.rep(bu8(0), bitand(4-bitand(#raw,3),3))
 	print( raw==tcpb and "TCP RECONSTRUCT OK" or "TCP RECONSTRUCT FAILED" )
 	test_assert(raw==tcpb)
 
@@ -914,7 +911,6 @@ function print_current_time()
 end
 function timer_info_print(tinfo)
 	print(" timer_info.name="..tinfo.name)
-	print(" timer_info.func="..tinfo.func)
 	print(" timer_info.period="..tinfo.period)
 	print(" timer_info.oneshot="..tostring(tinfo.oneshot))
 	print(" timer_info.fires="..tinfo.fires)
@@ -939,8 +935,17 @@ function timer2(name, data)
 	end
 end
 function test_timer(opts)
-	timer_set("t1","timer1",500,true,"sample_data");
+	-- anonymous function
+	timer_set("t0",function(name,data)
+		print("timer "..name.." fired. anonymous timer function")
+		print_current_time()
+		end,
+		100,true)
+
+	-- pass function as function
+	timer_set("t1",timer1,500,true,"sample_data");
 	local tbl = {n=0}
+	-- pass function through string name
 	timer_set("t2","timer2",700,false,tbl);
 
 	print("* timers\n")

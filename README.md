@@ -20,7 +20,7 @@ wget -qO- https://raw.githubusercontent.com/alex0310/zapret2-openwrt/main/instal
 
 ```sh
 wget -O /etc/apk/keys/zapret2-apk-key.pem \
-  https://github.com/alex0310/zapret2-openwrt/releases/download/v1.0.0-r1/zapret2-apk-key.pem
+  https://github.com/alex0310/zapret2-openwrt/releases/download/v1.0.1-r1/zapret2-apk-key.pem
 ```
 
 После этого локальные пакеты можно ставить с проверкой подписи, без

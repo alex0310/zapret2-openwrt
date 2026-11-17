@@ -1,13 +1,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=zapret2
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.0.1
 PKG_RELEASE:=1
 
-PKG_SOURCE:=v1.0.2.tar.gz
+PKG_SOURCE:=v1.0.7.tar.gz
 PKG_SOURCE_URL:=https://github.com/bol-van/zapret2/archive/refs/tags/
-PKG_HASH:=b778c9fda24de6d534881ce6c9ff5817ea245163d3b96dc1c1fd491704252e60
-PKG_BUILD_DIR:=$(BUILD_DIR)/zapret2-1.0.2
+PKG_HASH:=7ecae682965701aad2e5adead3bcbb62c7846425f3666eb2fd6ec3df29b1d632
+PKG_BUILD_DIR:=$(BUILD_DIR)/zapret2-1.0.7
 
 PKG_BUILD_PARALLEL:=1
 PKG_MAINTAINER:=bol-van
@@ -95,7 +95,7 @@ endef
 
 define Package/zapret2/description
  zapret2 is a DPI bypass tool using nfqws2.
- Includes nfqws2/mdig built from upstream v1.0.2, Lua scripts, firewall
+ Includes nfqws2/mdig built from upstream v1.0.7, Lua scripts, firewall
  scripts, a Rust management CLI and a Rust strategy finder.
 endef
 

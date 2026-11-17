@@ -91,7 +91,7 @@ function getFormValue(id) {
 }
 
 function buildEnvVars() {
-	var scanlevel = validateEnum(getFormValue('bc2_scanlevel'), ['quick', 'standard', 'force'], 'standard');
+	var scanlevel = validateEnum(getFormValue('bc2_scanlevel'), ['veryquick', 'quick', 'standard', 'force'], 'standard');
 	var repeats = validateEnum(getFormValue('bc2_repeats'), ['1', '2', '3', '4', '5'], '1');
 
 	var enableHttp = sanitizeBool(getFormValue('bc2_http'));
@@ -694,6 +694,7 @@ function renderBlockcheckUI() {
 			{ value: 'custom', label: 'custom' }
 		], 'standard')),
 		field(_('Level') + ': ', sel('bc2_scanlevel', [
+			{ value: 'veryquick', label: 'veryquick' },
 			{ value: 'quick', label: 'quick' },
 			{ value: 'standard', label: 'standard' },
 			{ value: 'force', label: 'force' }

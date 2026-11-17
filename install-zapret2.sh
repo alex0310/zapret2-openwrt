@@ -7,8 +7,8 @@
 #
 # Примеры:
 #   sh install-zapret2.sh
-#   sh install-zapret2.sh 1.0.0-r1
-#   sh install-zapret2.sh v1.0.0-r1 --start
+#   sh install-zapret2.sh 1.0.1-r1
+#   sh install-zapret2.sh v1.0.1-r1 --start
 #   sh install-zapret2.sh --no-luci --yes
 #   sh install-zapret2.sh --lang-ru
 #
@@ -17,7 +17,7 @@
 #   wget -qO- .../install-zapret2.sh | sh -s -- --start
 #
 # Переменные окружения:
-#   ZAPRET2_VERSION=1.0.0-r1
+#   ZAPRET2_VERSION=1.0.1-r1
 #   ZAPRET2_YES=1
 #   ZAPRET2_LANG=ru
 #
@@ -86,7 +86,7 @@ zapret2 — установщик для OpenWrt
   sh install-zapret2.sh [версия] [опции]
 
 Аргументы:
-  версия                 Версия пакетов, например 1.0.0-r1 или v1.0.0-r1.
+  версия                 Версия пакетов, например 1.0.1-r1 или v1.0.1-r1.
                          По умолчанию — последний релиз GitHub.
 
 Опции:
@@ -602,7 +602,7 @@ resolve_version() {
 		return 0
 	fi
 	log "Определение последней версии..."
-	VERSION=$(latest_version) || die "Не удалось определить версию. Укажите её явно: sh install-zapret2.sh 1.0.0-r1"
+	VERSION=$(latest_version) || die "Не удалось определить версию. Укажите её явно: sh install-zapret2.sh 1.0.1-r1"
 	validate_version "$VERSION" || die "Некорректная версия: $VERSION"
 	log "Последняя версия: $VERSION"
 }

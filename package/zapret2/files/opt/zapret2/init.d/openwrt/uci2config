@@ -298,11 +298,23 @@ _process_strategy() {
     }
     [ -n "$l7_list" ] && filter_opts="$filter_opts --filter-l7=$l7_list"
 
+    # nfqws2 v1.0.7 exits with an error if the same file is registered twice
+    # in one profile for the same list type. Deduplicate by resolved path.
+    local seen_hl="" seen_hlx="" seen_ip="" seen_ipx=""
+    _seen_hl()  { case "|$seen_hl|"  in *"|$1|"*) return 1 ;; esac; seen_hl="$seen_hl|$1";   return 0; }
+    _seen_hlx() { case "|$seen_hlx|" in *"|$1|"*) return 1 ;; esac; seen_hlx="$seen_hlx|$1"; return 0; }
+    _seen_ip()  { case "|$seen_ip|"  in *"|$1|"*) return 1 ;; esac; seen_ip="$seen_ip|$1";   return 0; }
+    _seen_ipx() { case "|$seen_ipx|" in *"|$1|"*) return 1 ;; esac; seen_ipx="$seen_ipx|$1"; return 0; }
+
+    local autohostlist_path="$ZAPRET_BASE/ipset/zapret_hosts_auto.txt"
+    local strategy_autohostlist=0 strategy_autohostlist_debuglog=0
+    config_get_bool strategy_autohostlist "$section" autohostlist 0
+
     # Hostlists - validate paths
     # Handles both string option (single value) and list option (multiple values)
     local hostlist_processed=0
     _add_hostlist() {
-        local list_name="$1" list_path opt_name
+        local list_name="$1" list_path opt_name target=""
         config_get list_path "$list_name" path
         [ -n "$list_path" ] || return
         # Sanitize path and check for path traversal
@@ -310,17 +322,25 @@ _process_strategy() {
         case "$list_path" in
             *../*|*..*) return ;; # Reject path traversal
         esac
+        if [ -f "${list_path}.gz" ]; then
+            target="${list_path}.gz"
+        elif [ -f "$list_path" ]; then
+            target="$list_path"
+        fi
+        [ -n "$target" ] || return
+        # --hostlist-auto shares the include collection with --hostlist
+        [ "$strategy_autohostlist" = "1" ] && [ "$target" = "$autohostlist_path" ] && return
         case "$list_name" in
             *exclude*) opt_name="--hostlist-exclude" ;;
             *) opt_name="--hostlist" ;;
         esac
-        if [ -f "${list_path}.gz" ]; then
-            hostlist_opts="$hostlist_opts ${opt_name}=${list_path}.gz"
-            hostlist_processed=1
-        elif [ -f "$list_path" ]; then
-            hostlist_opts="$hostlist_opts ${opt_name}=$list_path"
-            hostlist_processed=1
+        if [ "$opt_name" = "--hostlist-exclude" ]; then
+            _seen_hlx "$target" || return
+        else
+            _seen_hl "$target" || return
         fi
+        hostlist_opts="$hostlist_opts ${opt_name}=$target"
+        hostlist_processed=1
     }
     # First try list option
     config_list_foreach "$section" hostlist _add_hostlist
@@ -335,18 +355,20 @@ _process_strategy() {
     # Handles both string option (single value) and list option (multiple values)
     local exclude_processed=0
     _add_exclude() {
-        local list_name="$1" list_path
+        local list_name="$1" list_path target=""
         config_get list_path "$list_name" path
         [ -n "$list_path" ] || return
         list_path=$(sanitize_value "$list_path")
         case "$list_path" in *../*|*..*) return ;; esac
         if [ -f "${list_path}.gz" ]; then
-            exclude_opts="$exclude_opts --hostlist-exclude=${list_path}.gz"
-            exclude_processed=1
+            target="${list_path}.gz"
         elif [ -f "$list_path" ]; then
-            exclude_opts="$exclude_opts --hostlist-exclude=$list_path"
-            exclude_processed=1
+            target="$list_path"
         fi
+        [ -n "$target" ] || return
+        _seen_hlx "$target" || return
+        exclude_opts="$exclude_opts --hostlist-exclude=$target"
+        exclude_processed=1
     }
     # First try list option
     config_list_foreach "$section" hostlist_exclude _add_exclude
@@ -360,40 +382,44 @@ _process_strategy() {
     # IP sets - validate paths
     local ipset_opts=""
     _add_ipset() {
-        local list_name="$1" list_path
+        local list_name="$1" list_path target=""
         config_get list_path "$list_name" path
         [ -n "$list_path" ] || return
         list_path=$(sanitize_value "$list_path")
         case "$list_path" in *../*|*..*) return ;; esac
         if [ -f "${list_path}.gz" ]; then
-            ipset_opts="$ipset_opts --ipset=${list_path}.gz"
+            target="${list_path}.gz"
         elif [ -f "$list_path" ]; then
-            ipset_opts="$ipset_opts --ipset=$list_path"
+            target="$list_path"
         fi
+        [ -n "$target" ] || return
+        _seen_ip "$target" || return
+        ipset_opts="$ipset_opts --ipset=$target"
     }
     config_list_foreach "$section" ipset _add_ipset
 
     # Exclude IP sets - validate paths
     local ipset_exclude_opts=""
     _add_ipset_exclude() {
-        local list_name="$1" list_path
+        local list_name="$1" list_path target=""
         config_get list_path "$list_name" path
         [ -n "$list_path" ] || return
         list_path=$(sanitize_value "$list_path")
         case "$list_path" in *../*|*..*) return ;; esac
         if [ -f "${list_path}.gz" ]; then
-            ipset_exclude_opts="$ipset_exclude_opts --ipset-exclude=${list_path}.gz"
+            target="${list_path}.gz"
         elif [ -f "$list_path" ]; then
-            ipset_exclude_opts="$ipset_exclude_opts --ipset-exclude=$list_path"
+            target="$list_path"
         fi
+        [ -n "$target" ] || return
+        _seen_ipx "$target" || return
+        ipset_exclude_opts="$ipset_exclude_opts --ipset-exclude=$target"
     }
     config_list_foreach "$section" ipset_exclude _add_ipset_exclude
 
     # Autohostlist - per-strategy setting
-    local strategy_autohostlist strategy_autohostlist_debuglog
-    config_get_bool strategy_autohostlist "$section" autohostlist 0
     [ "$strategy_autohostlist" = "1" ] && {
-        autohostlist_opts="--hostlist-auto=$ZAPRET_BASE/ipset/zapret_hosts_auto.txt"
+        autohostlist_opts="--hostlist-auto=$autohostlist_path"
         # Add debug log if enabled per-strategy
         config_get_bool strategy_autohostlist_debuglog "$section" autohostlist_debuglog 0
         [ "$strategy_autohostlist_debuglog" = "1" ] && {
