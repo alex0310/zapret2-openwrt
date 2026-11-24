@@ -20,6 +20,7 @@
 
 # Do not publish Markdown files
 *.md
+!AGENTS.md
 
 # Rust build directories
 rust/target-*/
