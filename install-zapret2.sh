@@ -38,6 +38,11 @@ ASSUME_YES=0
 LANG_RU=""
 START_FAILED=0
 
+# Признаки обнаруженного zapret v1 (заполняется в check_zapret_v1)
+ZAPRET_V1_FOUND=0
+ZAPRET_V1_INIT=""
+ZAPRET_V1_PKG=0
+
 PKG_MGR=""
 PKG_FMT=""
 OWRT=""
@@ -110,6 +115,11 @@ zapret2 — установщик для OpenWrt
   ZAPRET2_YES=1          Не задавать вопросов.
   ZAPRET2_LANG=ru        Установить русский язык LuCI.
   ZAPRET2_PKG_LOG        Путь к логу пакетного менеджера.
+
+Примечание:
+  Если на роутере установлен zapret v1, он будет остановлен и отключён
+  из автозагрузки с предупреждением о конфликте и ожиданием Enter.
+  Ожидание пропускается при --yes, --dry-run и при отсутствии терминала.
 
 Поддерживаемые комбинации:
   24.10.5  mipsel_24kc               IPK
@@ -365,6 +375,123 @@ resolve_owrt() {
 	IFS= read -r answer </dev/tty || die "Установка отменена"
 	printf '\n' >/dev/tty 2>/dev/null || true
 	return 0
+}
+
+# zapret v1 и zapret2 несовместимы: оба перехватывают трафик через NFQUEUE,
+# создают правила nftables/iptables и используют fwmark/connbytes на портах
+# 80/443. nfqws (v1) и nfqws2 (v2) конфликтуют за очередь и метки пакетов.
+detect_zapret_v1() {
+	ZAPRET_V1_FOUND=0
+	ZAPRET_V1_INIT=""
+	ZAPRET_V1_PKG=0
+
+	# Пакет zapret (не zapret2)
+	if pkg_installed zapret; then
+		ZAPRET_V1_PKG=1
+		ZAPRET_V1_FOUND=1
+	fi
+
+	# Init-скрипт v1: /etc/init.d/zapret (у v2 — /etc/init.d/zapret2)
+	if [ -f /etc/init.d/zapret ]; then
+		ZAPRET_V1_INIT=/etc/init.d/zapret
+		ZAPRET_V1_FOUND=1
+	fi
+
+	# «Ручная» установка v1 через install_easy.sh: /opt/zapret (у v2 — /opt/zapret2)
+	[ -d /opt/zapret ] && ZAPRET_V1_FOUND=1
+	[ -f /etc/config/zapret ] && ZAPRET_V1_FOUND=1
+
+	# Ссылки автозагрузки v1. Шаблоны *zapret не совпадают с zapret2.
+	for l in /etc/rc.d/S*zapret /etc/rc.d/K*zapret; do
+		[ -e "$l" ] || continue
+		ZAPRET_V1_FOUND=1
+		break
+	done
+
+	[ "$ZAPRET_V1_FOUND" = 1 ]
+}
+
+warn_zapret_v1() {
+	warn "Обнаружен zapret v1 (первая версия zapret) на этом роутере."
+	[ "$ZAPRET_V1_PKG" = 1 ] && \
+		warn "Установлен пакет zapret (он не будет удалён)."
+	warn "zapret v1 и zapret2 НЕ могут работать одновременно:"
+	warn "  - оба перехватывают трафик через NFQUEUE и создают правила nftables/iptables;"
+	warn "  - оба используют fwmark и connbytes на портах 80/443;"
+	warn "  - nfqws (v1) и nfqws2 (v2) конфликтуют за очередь NFQUEUE и метки пакетов."
+	warn "Одновременная работа приводит к дублированию правил, петлям трафика и неработающему обходу DPI."
+	warn "Перед установкой zapret2 сервис zapret v1 будет остановлен и отключён из автозагрузки."
+	warn "Файлы v1 (/opt/zapret) и его конфигурация НЕ удаляются."
+	warn "Вернуть zapret v1 можно только после удаления zapret2:"
+	warn "  /etc/init.d/zapret enable && /etc/init.d/zapret start"
+}
+
+stop_zapret_v1() {
+	v1_stopped=0
+	if [ -n "$ZAPRET_V1_INIT" ]; then
+		if "$ZAPRET_V1_INIT" stop >/dev/null 2>&1; then
+			log "zapret v1: остановлен ($ZAPRET_V1_INIT stop)"
+			v1_stopped=1
+		else
+			warn "Не удалось остановить zapret v1 командой $ZAPRET_V1_INIT stop"
+		fi
+		if "$ZAPRET_V1_INIT" disable >/dev/null 2>&1; then
+			log "zapret v1: автозагрузка отключена ($ZAPRET_V1_INIT disable)"
+		else
+			warn "Не удалось отключить автозагрузку zapret v1 командой $ZAPRET_V1_INIT disable"
+		fi
+	elif [ -x /opt/zapret/init.d/openwrt/zapret ]; then
+		if /opt/zapret/init.d/openwrt/zapret stop >/dev/null 2>&1; then
+			log "zapret v1: остановлен (init.d/openwrt/zapret stop)"
+			v1_stopped=1
+		else
+			warn "Не удалось остановить zapret v1 из /opt/zapret"
+		fi
+		warn "Отключите автозагрузку zapret v1 вручную (symlink'и /etc/rc.d/S*zapret)."
+	else
+		warn "init-скрипт zapret v1 не найден: остановите сервис и снимите автозагрузку вручную."
+	fi
+
+	# На случай нестандартной установки убираем ссылки автозагрузки v1.
+	# Шаблоны *zapret не задевают ссылки zapret2 (*zapret2).
+	removed=0
+	for l in /etc/rc.d/S*zapret /etc/rc.d/K*zapret; do
+		[ -e "$l" ] || continue
+		rm -f "$l" 2>/dev/null && removed=$((removed + 1))
+	done
+	[ "$removed" -gt 0 ] && \
+		log "zapret v1: удалено ссылок автозагрузки: $removed"
+	[ "$v1_stopped" = 1 ]
+}
+
+wait_zapret_v1_enter() {
+	# Неинтерактивные режимы не должны зависать на ожидании ввода.
+	[ "$DRY_RUN" = 1 ] && return 0
+	[ "$ASSUME_YES" = 1 ] && return 0
+
+	if ! ( : < /dev/tty ) 2>/dev/null || ! ( : > /dev/tty ) 2>/dev/null; then
+		warn "Терминал недоступен: продолжаю без ожидания Enter."
+		return 0
+	fi
+
+	printf 'Нажмите Enter, чтобы продолжить, или Ctrl+C для отмены: ' >/dev/tty
+	IFS= read -r v1_answer </dev/tty || die "Установка отменена"
+	printf '\n' >/dev/tty 2>/dev/null || true
+	return 0
+}
+
+check_zapret_v1() {
+	detect_zapret_v1 || return 0
+
+	warn_zapret_v1
+
+	if [ "$DRY_RUN" = 1 ]; then
+		warn "Режим --dry-run: zapret v1 НЕ остановлен, автозагрузка НЕ отключена."
+		return 0
+	fi
+
+	stop_zapret_v1 || true
+	wait_zapret_v1_enter
 }
 
 asset_name() {
@@ -1117,6 +1244,13 @@ print_plan() {
 	log "Формат пакетов: $PKG_FMT"
 	log "Версия: $VERSION"
 	log "Архив: $ASSET"
+	if [ "$ZAPRET_V1_FOUND" = 1 ]; then
+		if [ "$DRY_RUN" = 1 ]; then
+			log "zapret v1: обнаружен (будет остановлен и отключён при реальной установке)"
+		else
+			log "zapret v1: остановлен, автозагрузка отключена"
+		fi
+	fi
 	if [ "$PKG_FMT" = apk ]; then
 		log "Подпись APK: ключ $APK_KEY_NAME"
 	fi
@@ -1151,6 +1285,9 @@ print_summary() {
 	fi
 	log "  Архитектура: $ARCH"
 	log "  Формат: $PKG_FMT"
+	if [ "$ZAPRET_V1_FOUND" = 1 ]; then
+		log "  zapret v1: остановлен и отключён из автозагрузки (пакет не удалён)"
+	fi
 	if [ "$INSTALL_LUCI" = 1 ]; then
 		log "  LuCI: установлен"
 	else
@@ -1196,6 +1333,7 @@ main() {
 	detect_pkg_mgr
 	detect_arch
 	resolve_owrt
+	check_zapret_v1
 
 	if [ "$DRY_RUN" = 1 ]; then
 		detect_downloader

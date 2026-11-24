@@ -400,8 +400,14 @@ plus riscv64_generic on 25.12.6 (RISC-V is not
 supported on 24.10.5 because its feeds have no LuaJIT for RISC-V). On
 other 24.10.x or 25.12.x releases it prints a warning, recommends the
 tested release, and waits for Enter before continuing. Use
---allow-unsupported for non-interactive runs. It does not install
-sysupgrade images.
+--allow-unsupported for non-interactive runs. It also detects an installed
+zapret v1 (package zapret, /etc/init.d/zapret, /opt/zapret, /etc/config/zapret
+or /etc/rc.d/*zapret links): since v1 and v2 both claim NFQUEUE and the
+firewall rules, it stops v1, disables its autostart, prints a conflict
+warning and waits for Enter before installing. The wait is skipped with
+--yes, --dry-run or when no terminal is available; --dry-run changes nothing.
+v1 files are never deleted and zapret2 autostart links are left untouched.
+It does not install sysupgrade images.
 
 Release archives
 ----------------
